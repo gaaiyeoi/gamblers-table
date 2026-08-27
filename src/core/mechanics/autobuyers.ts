@@ -49,3 +49,20 @@ export function tickAutobuyers(state: GameState, now: number): boolean {
   }
   return purchased
 }
+
+/** 返回自动购买间隔（毫秒），供 UI 展示节奏。 */
+export function autobuyerIntervalMs(): number {
+  return AUTO_BUY_INTERVAL_MS
+}
+
+/**
+ * 计算某个维度自动购买器的冷却进度（0~1）。
+ * - 未启用：返回 1（表示"已完成/无冷却"）。
+ * - 已启用：距离上次检查的时间占比，满 1 时下一次 tick 会触发购买并归零重来。
+ */
+export function autobuyerProgress(state: GameState, tier: number, now: number): number {
+  const ab = state.autobuyers[tier - 1]
+  if (ab === undefined || !ab.enabled) return 1
+  const elapsed = now - ab.lastTick
+  return Math.min(1, Math.max(0, elapsed / AUTO_BUY_INTERVAL_MS))
+}

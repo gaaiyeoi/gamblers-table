@@ -2,12 +2,22 @@
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 
-import { PxButton, PxCard } from '@mmt817/pixel-ui'
-import { HELPER_TYPES, canAffordHelper, costOfHelper, isHelperUnlocked, type HelperType } from '../core'
-import { formatCash } from '../core/format'
+import { PxCard } from '@mmt817/pixel-ui'
+import {
+  canAffordHelper,
+  canAffordHelperUpgrade,
+  costOfHelper,
+  costOfHelperUpgrade,
+  HELPER_TYPES,
+  helperLevel,
+  isHelperUnlocked,
+  type HelperType,
+} from '../core'
+import { formatCash, formatNumber } from '../core/format'
 import { helperSpriteDataUrl } from '../components/helpers/helperSprites'
 import { useGameStore } from '../stores/gameStore'
 import { useSound } from '../composables/useSound'
+import CooldownButton from '../components/ui/CooldownButton.vue'
 
 const store = useGameStore()
 const { state, uiVersion } = storeToRefs(store)
@@ -16,6 +26,8 @@ const { playClick } = useSound()
 interface HelperRow {
   id: string; label: string; rate: string; body: string; head: string
   count: number; costStr: string; affordable: boolean; unlocked: boolean; unlockHint: string
+  level: number; bonusPct: number; totalRateStr: string
+  upgradeCost: string; affordableUpgrade: boolean
 }
 
 /** 生成助手的解锁条件文案（无解锁条件的助手返回空串）。 */
@@ -49,22 +61,33 @@ const rows = computed((): HelperRow[] => {
   void uiVersion.value
   return HELPER_TYPES.map((h) => {
     const meta = HELPER_META[h.id] ?? { body: '#888', head: '#aaa', label: h.id, rate: '' }
+    const count = state.value.helpers[h.id]?.count ?? 0
+    const level = helperLevel(state.value, h.id)
+    const bonusPct = (h.levelBonus ?? 0.25) * 100
+    // 当前实际速率 = 单只速率 × 只数 × 等级倍率
+    const totalRate = h.flipsPerSec.toNumber() * count * (1 + bonusPct / 100 * level)
     return {
       id: h.id,
       label: meta.label,
       rate: meta.rate,
       body: meta.body,
       head: meta.head,
-      count: state.value.helpers[h.id]?.count ?? 0,
+      count,
       costStr: formatCash(costOfHelper(state.value, h.id)),
       affordable: canAffordHelper(state.value, h.id),
       unlocked: isHelperUnlocked(state.value, h.id),
       unlockHint: unlockHint(h),
+      level,
+      bonusPct,
+      totalRateStr: formatNumber(totalRate),
+      upgradeCost: formatCash(costOfHelperUpgrade(state.value, h.id)),
+      affordableUpgrade: canAffordHelperUpgrade(state.value, h.id),
     }
   })
 })
 
 function hire(id: string): void { store.hireHelperAction(id, 1) }
+function upgrade(id: string): void { store.upgradeHelperAction(id) }
 </script>
 
 <template>
@@ -109,8 +132,7 @@ function hire(id: string): void { store.hireHelperAction(id, 1) }
         <!-- 右：append —— 两个独立按钮 -->
         <template #append>
           <div class="hc-actions">
-            <PxButton
-              :use-throttle="false"
+            <CooldownButton
               class="hc-btn"
               :type="row.affordable ? 'success' : 'base'"
               :disabled="!row.affordable || !row.unlocked"
@@ -118,11 +140,11 @@ function hire(id: string): void { store.hireHelperAction(id, 1) }
             >
               <span class="hc-btn-label">雇佣</span>
               <span class="hc-btn-cost">{{ row.costStr }}</span>
-            </PxButton>
-            <PxButton :use-throttle="false" type="warning" class="hc-btn" @click="playClick">
+            </CooldownButton>
+            <CooldownButton type="warning" class="hc-btn" @click="playClick">
               <span class="hc-btn-label">升级</span>
               <span class="hc-btn-cost">Lv0</span>
-            </PxButton>
+            </CooldownButton>
           </div>
         </template>
       </PxCard>

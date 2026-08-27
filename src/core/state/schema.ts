@@ -3,7 +3,7 @@ import Decimal from 'break_infinity.js'
 import type { GameState } from './gameState'
 
 /** 当前存档版本号。每次新增/变更字段结构时 +1 并补充迁移函数。 */
-export const CURRENT_SCHEMA_VERSION = 8
+export const CURRENT_SCHEMA_VERSION = 9
 
 export const migrations: Record<number, (state: GameState) => void> = {
   2: (state) => {
@@ -43,6 +43,17 @@ export const migrations: Record<number, (state: GameState) => void> = {
     if (dim0 !== undefined && dim0.bought === 0) {
       dim0.bought = 1
       dim0.amount = dim0.amount.add(1)
+    }
+  },
+  9: (state) => {
+    // 助手升级等级与硬币强化等级：旧档补默认 0。
+    for (const helper of Object.values(state.helpers)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((helper as any).level === undefined) (helper as any).level = 0
+    }
+    for (const dim of state.dimensions) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((dim as any).enhanceLevel === undefined) (dim as any).enhanceLevel = 0
     }
   },
 }

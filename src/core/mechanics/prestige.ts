@@ -50,6 +50,8 @@ export function prestigeReset(state: GameState, tier: number): Decimal {
   state.cash = new Decimal(0)
   for (const dim of state.dimensions) {
     dim.amount = new Decimal(0)
+    // 强化等级随转生清空（现金购买的当局增强，类似 upgrades）
+    dim.enhanceLevel = 0
   }
   // bought 不重置：阶梯翻倍升级跨转生保留
   for (const key of Object.keys(state.upgrades)) {
@@ -57,6 +59,8 @@ export function prestigeReset(state: GameState, tier: number): Decimal {
   }
   for (const helper of Object.values(state.helpers)) {
     helper.count = 0
+    // 助手升级等级随转生清空（当局增强）
+    helper.level = 0
     // 帽子（外观）保留
   }
 

@@ -12,6 +12,7 @@ import {
   confirmLevelAdvance,
   dismissLevelAdvance,
   createDefaultGameState,
+  enhanceDimension,
   helperTypeOf,
   talentOf,
   EventHub,
@@ -23,6 +24,7 @@ import {
   hireHelper,
   incomeMultiplier,
   buyUpgrade,
+  upgradeHelper,
   upgradeOf,
   meltAll,
   meltCoins,
@@ -221,6 +223,36 @@ export const useGameStore = defineStore('game', () => {
       playBuy()
       const name = i18n.global.t(helperTypeOf(helperId).nameKey)
       notify(`雇佣了 ${name} ×${count}`)
+    } else {
+      playError()
+    }
+    return ok
+  }
+
+  /** 升级助手（每级提升翻转速率）。 */
+  function upgradeHelperAction(helperId: string): boolean {
+    const ok = upgradeHelper(state.value, helperId)
+    if (ok) {
+      checkLevels(state.value)
+      uiVersion.value += 1
+      playUpgrade()
+      const name = i18n.global.t(helperTypeOf(helperId).nameKey)
+      notify(`「${name}」升级至 Lv${state.value.helpers[helperId]!.level}`)
+    } else {
+      playError()
+    }
+    return ok
+  }
+
+  /** 强化硬币维度（每级提升该阶产出倍率）。 */
+  function enhanceDim(tier: number): boolean {
+    const ok = enhanceDimension(state.value, tier)
+    if (ok) {
+      checkLevels(state.value)
+      uiVersion.value += 1
+      playUpgrade()
+      const name = i18n.global.t(coinTypeOf(tier).nameKey)
+      notify(`「${name}」强化至 Lv${state.value.dimensions[tier - 1]!.enhanceLevel}`)
     } else {
       playError()
     }
@@ -487,6 +519,8 @@ export const useGameStore = defineStore('game', () => {
     meltDim,
     meltAllDim,
     hireHelperAction,
+    upgradeHelperAction,
+    enhanceDim,
     buyUpgradeAction,
     doGacha,
     equipHat,

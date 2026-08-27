@@ -82,7 +82,7 @@ const worldH = computed(() => Math.max(feltH.value * 1.7, 560))
 const panX = ref(0)
 const panY = ref(0)
 const dragging = ref(false)
-const dragState = { active: false, sx: 0, sy: 0, px: 0, py: 0, moved: false }
+const dragState = { active: false, sx: 0, sy: 0, px: 0, py: 0 }
 
 /** 平移量 clamp 到 [0, world-view]，避免把视口拖出世界边界。 */
 const clampedPanX = computed(() =>
@@ -99,10 +99,9 @@ const worldStyle = computed(() => ({
 }))
 
 function onPointerDown(e: PointerEvent): void {
-  // 点击硬币时不启动桌布平移（硬币由 CoinScene 处理）；空白处的点击/拖动由本层接管
+  // 点击硬币时不启动桌布平移（硬币由 CoinScene 单独处理翻转）
   if ((e.target as HTMLElement).closest('.cs-coin')) return
   dragState.active = true
-  dragState.moved = false
   dragState.sx = e.clientX
   dragState.sy = e.clientY
   dragState.px = panX.value
@@ -115,23 +114,14 @@ function onPointerMove(e: PointerEvent): void {
   if (!dragState.active) return
   const dx = e.clientX - dragState.sx
   const dy = e.clientY - dragState.sy
-  // 超过阈值才算"拖动"，用于区分点击与拖拽
-  if (!dragState.moved && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
-    dragState.moved = true
-  }
   // 反向：向右拖 → 世界向右移动（看到更多左侧），符合视口滚动直觉
   panX.value = dragState.px - dx
   panY.value = dragState.py - dy
 }
 
 function onPointerUp(): void {
-  const wasDrag = dragState.moved
   dragState.active = false
   dragging.value = false
-  // 点击（非拖拽）：在桌布内翻转一枚随机硬币
-  if (!wasDrag) {
-    flipRandomCoin()
-  }
 }
 
 function onPointerCancel(): void {
@@ -231,7 +221,18 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
     <!-- ── 绿色赌台（PxCard 外框） ── -->
     <div class="table-wrap">
       <PxCard round class="table-outer px-card--dark">
-        <template #header><p class="title table-title">♠ 赌桌</p></template>
+        <template #header>
+          <p class="title table-title">♠ 赌桌</p>
+          <PxButton
+            :use-throttle="false"
+            type="warning"
+            class="flip-btn"
+            aria-label="翻转硬币"
+            @click="flipRandomCoin"
+          >
+            翻转硬币
+          </PxButton>
+        </template>
         <div
           ref="feltRef"
           class="felt-table"
@@ -244,10 +245,6 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
           <!-- 自然草地氛围：暗角 + 内框（叠在草地世界之上） -->
           <div class="felt-vignette" />
           <div class="felt-rail" />
-
-          <div class="felt-hint pixel-number">
-            点击桌布翻转硬币 · 拖动草地平移 · $ 得钱 · ☠ 得骷髅币
-          </div>
 
           <!-- 上桌进度条：购买/雇佣后精灵逐枚上桌的倒计时 -->
           <Transition name="spawn-fade">
@@ -648,21 +645,6 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
   width: 4px;
   height: 2px;
   background: rgba(255, 255, 255, 0.5);
-}
-
-.felt-hint {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: rgba(255, 255, 255, 0.7);
-  padding: 2px 10px;
-  font-size: 14px;
-  white-space: nowrap;
-  z-index: 15;
-  pointer-events: none;
-  letter-spacing: 1px;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6), 0 0 4px rgba(0, 0, 0, 0.4);
 }
 
 /* 上桌进度条：购买/雇佣后精灵逐枚上桌的倒计时 */

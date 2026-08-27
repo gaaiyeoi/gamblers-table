@@ -7,6 +7,8 @@ import { CURRENT_SCHEMA_VERSION } from './schema'
 export interface DimensionState {
   /** 已购买数量（整数）。 */
   bought: number
+  /** 强化等级：每级产出倍率 ×(1 + enhanceBonus)。 */
+  enhanceLevel: number
   /** 当前数量（Decimal，累积生产）。 */
   amount: Decimal
 }
@@ -24,6 +26,8 @@ export interface AutobuyerState {
 /** 助手状态。 */
 export interface HelperState {
   count: number
+  /** 升级等级：每级提升该助手的翻转速率。 */
+  level: number
   /** 帽子外观 id（来自扭蛋机收藏）。 */
   hat: string
 }
@@ -140,6 +144,7 @@ export function createDefaultGameState(): GameState {
     // 开局自带 1 枚铜币（D1），保证桌布上初始就有一枚可点击/翻转的硬币。
     dimensions: Array.from({ length: INITIAL_DIMENSION_COUNT }, (_, i) => ({
       bought: i === 0 ? 1 : 0,
+      enhanceLevel: 0,
       amount: i === 0 ? D1 : D0,
     })),
     // 默认全部关闭：由玩家在硬币界面手动开启，避免"钱够就自动买"。

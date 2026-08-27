@@ -3,10 +3,11 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { PxButton, PxCard } from '@mmt817/pixel-ui'
+import { PxCard } from '@mmt817/pixel-ui'
 import { canAffordHelper, costOfHelper, helperTypeOf } from '../../core'
 import { formatCash } from '../../core/format'
 import { useGameStore } from '../../stores/gameStore'
+import CooldownButton from '../ui/CooldownButton.vue'
 
 const props = defineProps<{ helperId: string }>()
 
@@ -45,14 +46,13 @@ function hire(): void {
         {{ hat ? t(`hats.${hat.replace('hat_', '')}`) : t('helpers.noHat') }}
       </div>
     </div>
-    <PxButton
-      :use-throttle="false"
+    <CooldownButton
       :type="affordable ? 'success' : 'base'"
       :disabled="!affordable"
       @click="hire"
     >
       {{ t('helpers.hire') }} · {{ owned }}
-    </PxButton>
+    </CooldownButton>
   </PxCard>
 </template>
 

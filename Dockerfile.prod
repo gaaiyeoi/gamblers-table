@@ -1,6 +1,8 @@
 # 生产镜像：多阶段构建
 # Stage 1: 使用 Vite 构建静态产物
-FROM node:20-alpine AS build
+# 注意：vitest 嵌套依赖的 vite@8.2.2 要求 node ^20.19||>=22.12 且 peer 需 esbuild ^0.27||^0.28，
+#       故使用 node:24 以保证 npm 能正确解析 peer 依赖（node:20 的 npm 10 严格校验会失败）
+FROM node:24-alpine AS build
 
 WORKDIR /app
 

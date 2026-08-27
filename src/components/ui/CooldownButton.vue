@@ -1,0 +1,118 @@
+<script setup lang="ts">
+import { onBeforeUnmount, ref } from 'vue'
+import { PxButton } from '@mmt817/pixel-ui'
+
+type ButtonType = 'success' | 'primary' | 'warning' | 'danger' | 'base' | 'sakura'
+
+const props = withDefaults(
+  defineProps<{
+    /** 按钮主题色，透传给 PxButton。 */
+    type?: ButtonType
+    /** 自定义颜色，透传给 PxButton。 */
+    color?: string
+    /** 是否禁用（外部状态，如钱不够）。 */
+    disabled?: boolean
+    /**
+     * 生产周期（毫秒）：进度条每走满一次执行一次生产。
+     * 连点不会被拦截，只会累积待生产数，按周期逐个结算（类似自动购买）。
+     */
+    intervalMs?: number
+  }>(),
+  { intervalMs: 500 },
+)
+
+const emit = defineEmits<{ click: [] }>()
+
+/** 连点累积的待生产数。 */
+const pending = ref(0)
+/** 当前周期进度（0 → 1），走满触发一次生产并进入下一轮。 */
+const progress = ref(0)
+/** 节拍器是否运行中（有待生产时保持循环）。 */
+const running = ref(false)
+
+let rafId: number | undefined
+let start = 0
+
+function onClick(): void {
+  if (props.disabled) return
+  pending.value += 1
+  if (!running.value) {
+    running.value = true
+    progress.value = 0
+    start = performance.now()
+    rafId = requestAnimationFrame(step)
+  }
+}
+
+function step(now: number): void {
+  const elapsed = now - start
+  progress.value = Math.min(1, elapsed / props.intervalMs)
+  if (progress.value < 1) {
+    rafId = requestAnimationFrame(step)
+    return
+  }
+  // 周期走满：结算一个待生产
+  if (pending.value > 0) {
+    pending.value -= 1
+    emit('click')
+  }
+  if (pending.value > 0) {
+    progress.value = 0
+    start = now
+    rafId = requestAnimationFrame(step)
+  } else {
+    running.value = false
+    progress.value = 0
+  }
+}
+
+onBeforeUnmount(() => {
+  if (rafId !== undefined) cancelAnimationFrame(rafId)
+})
+</script>
+
+<template>
+  <PxButton
+    :use-throttle="false"
+    class="cb-inner"
+    :type="type"
+    :color="color"
+    :disabled="disabled"
+    @click="onClick"
+  >
+    <slot />
+    <div v-if="running" class="cb-fill" :style="{ width: `${progress * 100}%` }" />
+    <span v-if="pending > 1" class="cb-pending pixel-number">×{{ pending }}</span>
+  </PxButton>
+</template>
+
+<style scoped>
+.cb-inner {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 生产周期进度：从空到满，满格结算一次生产 */
+.cb-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(61, 220, 132, 0.32);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 待生产数徽标：连点累积提示 */
+.cb-pending {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  z-index: 2;
+  font-size: 16px;
+  line-height: 1;
+  color: #3ddc84;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+</style>

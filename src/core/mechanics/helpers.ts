@@ -13,6 +13,9 @@ import { flipCoin, type FlipResult } from './coins'
  * 除新手助手外，每个助手都有基于累计统计的解锁条件（见 HELPER_TYPES）。
  */
 
+/** 助手每级翻转速率提升倍率（默认 +25%，可用 helperType.levelBonus 覆盖）。 */
+const HELPER_LEVEL_BONUS = 0.25
+
 /** 判断某个助手的累计统计解锁目标是否已达成。 */
 function helperUnlockSatisfied(state: GameState, goal: HelperUnlockGoal): boolean {
   switch (goal.kind) {
@@ -84,7 +87,7 @@ export function hireHelper(state: GameState, helperId: string, count = 1): boole
   state.cash = state.cash.sub(cost)
   const existing = state.helpers[helperId]
   if (existing === undefined) {
-    state.helpers[helperId] = { count, hat: '' }
+    state.helpers[helperId] = { count, hat: '', level: 0 }
   } else {
     existing.count += count
   }
@@ -94,13 +97,55 @@ export function hireHelper(state: GameState, helperId: string, count = 1): boole
   return true
 }
 
-/** 助手每秒总抛硬币速率（所有助手叠加）。 */
+/** 助手当前升级等级（未雇佣返回 0）。 */
+export function helperLevel(state: GameState, helperId: string): number {
+  return state.helpers[helperId]?.level ?? 0
+}
+
+/** 单个助手的等级倍率：1 + levelBonus × 等级（未升级为 1）。 */
+export function helperLevelMultiplier(state: GameState, helperId: string): Decimal {
+  const helper = helperTypeOf(helperId)
+  const bonus = helper.levelBonus ?? HELPER_LEVEL_BONUS
+  return new Decimal(1).add(bonus * helperLevel(state, helperId))
+}
+
+/** 下一级升级成本：baseCost × 4 × costGrowth^level（几何递增）。 */
+export function costOfHelperUpgrade(state: GameState, helperId: string): Decimal {
+  const helper = helperTypeOf(helperId)
+  const level = helperLevel(state, helperId)
+  return helper.baseCost.mul(4).mul(Decimal.pow(helper.costGrowth, level))
+}
+
+/** 是否可升级该助手：已雇佣 + 现金足够。 */
+export function canAffordHelperUpgrade(state: GameState, helperId: string): boolean {
+  const owned = state.helpers[helperId]
+  if (owned === undefined || owned.count === 0) return false
+  return state.cash.gte(costOfHelperUpgrade(state, helperId))
+}
+
+/**
+ * 升级助手：扣现金、等级 +1，提升该助手的翻转速率。
+ * 需先至少雇佣 1 只。返回是否成功。
+ */
+export function upgradeHelper(state: GameState, helperId: string): boolean {
+  const owned = state.helpers[helperId]
+  if (owned === undefined || owned.count === 0) return false
+  if (!canAffordHelperUpgrade(state, helperId)) return false
+  const cost = costOfHelperUpgrade(state, helperId)
+  state.cash = state.cash.sub(cost)
+  owned.level = (owned.level ?? 0) + 1
+  EventHub.logic.emit(GAME_EVENT.HELPER_UPGRADED, { helperId, level: owned.level })
+  EventHub.logic.emit(GAME_EVENT.CASH_CHANGED)
+  return true
+}
+
+/** 助手每秒总抛硬币速率（所有助手叠加，计入等级倍率）。 */
 export function totalFlipsPerSec(state: GameState): Decimal {
   let total = new Decimal(0)
   for (const helper of HELPER_TYPES) {
     const owned = state.helpers[helper.id]
     if (owned === undefined || owned.count === 0) continue
-    total = total.add(helper.flipsPerSec.times(owned.count))
+    total = total.add(helper.flipsPerSec.times(owned.count).times(helperLevelMultiplier(state, helper.id)))
   }
   return total
 }
@@ -154,6 +199,6 @@ export function registerHelperCaches(state: GameState): void {
   const cacheKey = 'totalFlipsPerSec'
   if (GameCache[cacheKey] !== undefined) return
   const lazy = new Lazy(() => totalFlipsPerSec(state))
-  lazy.invalidateOn(EventHub.logic, GAME_EVENT.HELPER_HIRED)
+  lazy.invalidateOn(EventHub.logic, GAME_EVENT.HELPER_HIRED, GAME_EVENT.HELPER_UPGRADED)
   GameCache[cacheKey] = lazy
 }

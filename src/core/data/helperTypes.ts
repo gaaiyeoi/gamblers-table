@@ -30,6 +30,8 @@ export interface HelperType {
   fixedCost?: Decimal
   /** 单个助手每秒抛硬币次数。 */
   flipsPerSec: Decimal
+  /** 每级升级的翻转速率提升倍率（0.25 = 每级 +25%）。 */
+  levelBonus?: number
   /** 像素图标 id（UI 阶段映射）。 */
   icon: string
   /** 解锁后写入 state.unlockFlags 的机制级 flag（缺省表示无门控）。 */

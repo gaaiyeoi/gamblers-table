@@ -27,6 +27,8 @@ export interface CoinType {
   baseRate: Decimal
   /** 每购买 k 个，该维度基础产出翻倍（×2）。 */
   doublingEvery: number
+  /** 每级强化的产出提升倍率（0.25 = 每级 +25%）。 */
+  enhanceBonus?: number
   /** 像素图标 id（UI 阶段映射贴图）。 */
   icon: string
   /** 解锁后写入 state.unlockFlags 的机制级 flag（缺省表示无门控）。 */

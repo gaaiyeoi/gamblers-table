@@ -3,7 +3,7 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { PxButton, PxCard } from '@mmt817/pixel-ui'
+import { PxCard } from '@mmt817/pixel-ui'
 import {
   canAffordUpgrade,
   costOfUpgrade,
@@ -12,6 +12,7 @@ import {
   upgradeLevel,
   type UpgradeDef,
 } from '../core'
+import CooldownButton from '../components/ui/CooldownButton.vue'
 import { upgradeSpriteDataUrl } from '../components/upgrades/upgradeSprites'
 import { formatCash } from '../core/format'
 import { useGameStore } from '../stores/gameStore'
@@ -103,8 +104,7 @@ function buy(id: string): void {
 
         <!-- 右：购买按钮 -->
         <template #append>
-          <PxButton
-            :use-throttle="false"
+          <CooldownButton
             class="uc-btn"
             :type="row.maxed ? 'base' : row.affordable ? 'success' : 'base'"
             :disabled="row.maxed || !row.affordable"
@@ -112,7 +112,7 @@ function buy(id: string): void {
           >
             <span class="uc-btn-label">{{ row.maxed ? t('upgrades.maxed') : t('upgrades.buy') }}</span>
             <span v-if="!row.maxed" class="uc-btn-cost">{{ row.costStr }}</span>
-          </PxButton>
+          </CooldownButton>
         </template>
       </PxCard>
     </div>

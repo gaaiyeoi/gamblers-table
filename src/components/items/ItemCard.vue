@@ -3,7 +3,7 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { PxButton, PxCard } from '@mmt817/pixel-ui'
+import { PxCard } from '@mmt817/pixel-ui'
 import {
   canAffordDimension,
   COIN_TYPES,
@@ -12,6 +12,7 @@ import {
 } from '../../core'
 import { formatCash, formatRate } from '../../core/format'
 import { useGameStore } from '../../stores/gameStore'
+import CooldownButton from '../ui/CooldownButton.vue'
 
 const props = defineProps<{ tier: number }>()
 
@@ -60,14 +61,13 @@ function buy(): void {
         <div class="double-bar__fill" :style="{ width: `${doubleProgress * 100}%` }" />
       </div>
     </div>
-    <PxButton
-      :use-throttle="false"
+    <CooldownButton
       :type="affordable ? 'success' : 'base'"
       :disabled="!affordable"
       @click="buy"
     >
       {{ t('table.click') }}
-    </PxButton>
+    </CooldownButton>
   </PxCard>
 </template>
 

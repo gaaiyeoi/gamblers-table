@@ -1,20 +1,23 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { PxButton, PxCard } from '@mmt817/pixel-ui'
+import { PxCard, PxProgress } from '@mmt817/pixel-ui'
 import {
+  autobuyerProgress,
   canAffordDimension,
   canMelt,
   COIN_TYPES,
   coinTypeOf,
   costOfDimension,
   hasFlag,
+  isAutobuyerUnlocked,
   isCoinUnlocked,
   MELT_RATIO,
   type CoinUnlockGoal,
 } from '../../core'
+import CooldownButton from '../../components/ui/CooldownButton.vue'
 import { formatCash, formatNumber } from '../../core/format'
 import { useGameStore } from '../../stores/gameStore'
 import { useSound } from '../../composables/useSound'
@@ -104,6 +107,43 @@ const bulkUnlocked = computed(() => {
   void uiVersion.value
   return hasFlag(state.value, 'bulkBuy')
 })
+
+// ---- AD 式自动购买：每个硬币维度独立开关 + 1 秒冷却进度条 ----
+
+/** 自动购买器是否已解锁（关卡第 5 关奖励）。 */
+const autoUnlocked = computed(() => {
+  void uiVersion.value
+  return isAutobuyerUnlocked(state.value)
+})
+
+/** 驱动自动购买进度条刷新的时钟（毫秒时间戳），每 100ms 更新一次。 */
+const autoClock = ref(Date.now())
+let autoTimer: ReturnType<typeof setInterval> | undefined
+
+onMounted(() => {
+  autoTimer = setInterval(() => {
+    autoClock.value = Date.now()
+  }, 100)
+})
+onUnmounted(() => {
+  if (autoTimer !== undefined) clearInterval(autoTimer)
+})
+
+/** 某个维度自动购买开关当前是否已开启。 */
+function autoEnabled(tier: number): boolean {
+  return state.value.autobuyers[tier - 1]?.enabled ?? false
+}
+
+/** 切换某个维度的自动购买开关。 */
+function toggleAuto(tier: number): void {
+  store.toggleAutobuyer(tier)
+}
+
+/** 某个维度自动购买的冷却进度（0~1，满则下一次 tick 购买）。 */
+function autoProgress(tier: number): number {
+  void autoClock.value
+  return autobuyerProgress(state.value, tier, autoClock.value)
+}
 </script>
 
 <template>
@@ -156,10 +196,9 @@ const bulkUnlocked = computed(() => {
         <!-- 像素虚线分隔 -->
         <div class="cc-divider" />
 
-        <!-- 底部按钮（全部在卡片内） -->
+        <!-- 底部按钮（全部在卡片内，连点带冷却进度条） -->
         <div class="cc-actions">
-          <PxButton
-            :use-throttle="false"
+          <CooldownButton
             class="cc-btn"
             :type="row.affordable && row.unlocked ? 'success' : 'base'"
             :disabled="!row.affordable || !row.unlocked"
@@ -168,30 +207,46 @@ const bulkUnlocked = computed(() => {
             <span v-if="row.unlocked" class="cc-btn-label">购买</span>
             <span v-else class="cc-btn-label">{{ t('coins.locked') }}</span>
             <span class="cc-btn-cost">{{ row.unlocked ? row.cost1 : row.unlockHint }}</span>
-          </PxButton>
-          <PxButton
+          </CooldownButton>
+          <CooldownButton
             v-if="bulkUnlocked && row.unlocked"
-            :use-throttle="false"
             class="cc-btn"
             @click="buy(row.tier, 10)"
           >
             <span class="cc-btn-label">×10</span>
             <span class="cc-btn-cost">{{ row.cost10 }}</span>
-          </PxButton>
-          <PxButton
+          </CooldownButton>
+          <CooldownButton
             v-if="row.meltable"
-            :use-throttle="false"
             color="#a78bfa"
             class="cc-btn"
             @click="melt(row.tier)"
           >
             <span class="cc-btn-label">熔铸 ×{{ MELT_RATIO }}</span>
             <span class="cc-btn-cost">→ {{ row.meltTo }}</span>
-          </PxButton>
-          <PxButton :use-throttle="false" type="warning" class="cc-btn" @click="enhance(row)">
+          </CooldownButton>
+          <CooldownButton type="warning" class="cc-btn" @click="enhance(row)">
             <span class="cc-btn-label">强化</span>
             <span class="cc-btn-cost">Lv0</span>
-          </PxButton>
+          </CooldownButton>
+        </div>
+
+        <!-- AD 式自动购买：每个维度独立开关 + 1 秒冷却进度条（关卡 5 解锁） -->
+        <div v-if="autoUnlocked && row.unlocked" class="cc-auto">
+          <button
+            class="cc-auto__toggle pixel-number"
+            :class="{ 'is-on': autoEnabled(row.tier) }"
+            type="button"
+            @click="toggleAuto(row.tier)"
+          >
+            {{ autoEnabled(row.tier) ? '自动：开' : '自动：关' }}
+          </button>
+          <PxProgress
+            class="cc-auto__bar"
+            :percentage="autoEnabled(row.tier) ? Math.round(autoProgress(row.tier) * 100) : 0"
+            :status="autoEnabled(row.tier) ? 'success' : 'base'"
+            :show-text="false"
+          />
         </div>
       </PxCard>
     </div>
@@ -386,6 +441,37 @@ const bulkUnlocked = computed(() => {
 
 /* 按钮区 */
 .cc-actions { display: flex; gap: 6px; }
+
+/* AD 式自动购买行：开关 + 冷却进度条 */
+.cc-auto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.cc-auto__toggle {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border: 2px solid #a8a090;
+  background: #3a3a44;
+  color: #9aa3b5;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: inset -2px -2px #23232a, inset 2px 2px #4a4a55;
+}
+.cc-auto__toggle:hover {
+  color: #cfd6e4;
+}
+.cc-auto__toggle.is-on {
+  border-color: #3ddc84;
+  color: #3ddc84;
+  background: rgba(61, 220, 132, 0.12);
+  box-shadow: inset -2px -2px #1e5f3a, inset 2px 2px rgba(61, 220, 132, 0.25);
+}
+.cc-auto__bar {
+  flex: 1;
+  height: 10px !important;
+}
 
 /* 覆盖 px-button 固定高度/nowrap，让两行内容在按钮内自适应居中，不再溢出 */
 .cc-btn {

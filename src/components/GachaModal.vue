@@ -7,6 +7,7 @@ import { Sparkles, X } from 'lucide-vue-next'
 import { PxButton, PxCard } from '@mmt817/pixel-ui'
 import { HAT_POOL, hatOf, type HatRarity } from '../core'
 import { useGameStore } from '../stores/gameStore'
+import CooldownButton from './ui/CooldownButton.vue'
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -56,9 +57,9 @@ function hatColor(hatId: string): string {
           <span class="gacha__skull pixel-number">{{ skullTokens }}</span>
         </PxCard>
 
-        <PxButton :use-throttle="false" type="primary" class="gacha__pull" @click="pull">
+        <CooldownButton type="primary" class="gacha__pull" @click="pull">
           {{ t('gacha.pull') }}
-        </PxButton>
+        </CooldownButton>
 
         <div v-if="lastResult.length > 0" class="gacha__result">
           <span class="pixel-number">{{ t('gacha.result') }}：</span>

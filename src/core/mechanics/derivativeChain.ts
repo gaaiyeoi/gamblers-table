@@ -21,11 +21,49 @@ import { COIN_TYPES, coinTypeOf } from '../data/coinTypes'
  * - 产出倍率 = baseRate × 2^(bought/K)（每买 K 个翻倍），包装为 Lazy 缓存
  */
 
-/** 维度产出倍率（不含 amount）：baseRate × 阶梯翻倍 × 未来全局加成。 */
+/** 硬币强化每级产出提升倍率（默认 +25%，可用 coinType.enhanceBonus 覆盖）。 */
+const ENHANCE_BONUS = 0.25
+
+/** 维度产出倍率（不含 amount）：baseRate × 阶梯翻倍 × 强化等级加成。 */
 export function dimensionMultiplier(state: GameState, tier: number): Decimal {
   const coin = coinTypeOf(tier)
   const dim = state.dimensions[tier - 1]
-  return coin.baseRate.mul(doublingMultiplier(dim.bought, coin.doublingEvery))
+  const bonus = coin.enhanceBonus ?? ENHANCE_BONUS
+  const enhance = new Decimal(1).add(bonus * (dim.enhanceLevel ?? 0))
+  return coin.baseRate.mul(doublingMultiplier(dim.bought, coin.doublingEvery)).mul(enhance)
+}
+
+/** 某阶硬币的强化等级。 */
+export function enhanceLevelOf(state: GameState, tier: number): number {
+  return state.dimensions[tier - 1].enhanceLevel ?? 0
+}
+
+/** 下一级强化成本：baseCost × 5 × costGrowth^level（几何递增）。 */
+export function costOfEnhancement(state: GameState, tier: number): Decimal {
+  const coin = coinTypeOf(tier)
+  const level = enhanceLevelOf(state, tier)
+  return coin.baseCost.mul(5).mul(Decimal.pow(coin.costGrowth, level))
+}
+
+/** 是否可强化该阶硬币：已解锁 + 现金足够。 */
+export function canAffordEnhancement(state: GameState, tier: number): boolean {
+  if (!isCoinUnlocked(state, tier)) return false
+  return state.cash.gte(costOfEnhancement(state, tier))
+}
+
+/**
+ * 强化硬币：扣现金、强化等级 +1，该阶产出倍率 ×(1 + enhanceBonus)。
+ * 需先解锁该阶硬币。返回是否成功。
+ */
+export function enhanceDimension(state: GameState, tier: number): boolean {
+  if (!canAffordEnhancement(state, tier)) return false
+  const cost = costOfEnhancement(state, tier)
+  const dim = state.dimensions[tier - 1]
+  state.cash = state.cash.sub(cost)
+  dim.enhanceLevel = (dim.enhanceLevel ?? 0) + 1
+  EventHub.logic.emit(GAME_EVENT.ENHANCED, { tier, level: dim.enhanceLevel })
+  EventHub.logic.emit(GAME_EVENT.CASH_CHANGED)
+  return true
 }
 
 /** 每秒产出 = amount × 倍率。 */
@@ -102,7 +140,7 @@ export function registerDimensionCaches(state: GameState): void {
     // 已注册则跳过，避免重复挂载监听导致泄漏
     if (GameCache[cacheKey] !== undefined) continue
     const lazy = new Lazy(() => dimensionMultiplier(state, tier))
-    lazy.invalidateOn(EventHub.logic, GAME_EVENT.DIMENSION_BOUGHT)
+    lazy.invalidateOn(EventHub.logic, GAME_EVENT.DIMENSION_BOUGHT, GAME_EVENT.ENHANCED)
     GameCache[cacheKey] = lazy
   }
 }
