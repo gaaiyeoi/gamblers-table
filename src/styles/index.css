@@ -1,0 +1,123 @@
+/* NES.css + Ark Pixel 16px 像素字体 */
+@import 'nes.css/css/nes.min.css';
+
+/* Ark Pixel 16px —— 统一中文像素字体 */
+@font-face {
+  font-family: 'Ark Pixel 16px Monospaced';
+  src: url('/fonts/ark-pixel-16px-zh-cn.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ══════════════════════════════════════════════
+   CSS 变量 —— 亮色 NES 主题
+   ══════════════════════════════════════════════ */
+:root {
+  /* 亮色背景（让 NES.css 原生白底黑边正常显示） */
+  --app-bg:            #e8e0d0;   /* 米黄色背景，复古感 */
+  --sidebar-bg:        #d4ccc0;
+  --panel-bg:          #f0ebe0;
+
+  --accent:            #c03000;   /* NES 复古红 */
+  --accent-hover:      #a02800;
+  --accent-dim:        rgba(192,48,0,.15);
+  --accent-text:       #fff;
+
+  --felt:              #1d6b2a;
+  --felt-light:        #267a35;
+  --felt-dark:         #124a1e;
+  --table-frame:       #5d3217;
+
+  /* 亮色文字 */
+  --text-primary:      #212121;
+  --text-secondary:    #555;
+  --text-dim:          #888;
+  --text-gold:         #c08000;
+
+  --positive:          #209020;
+  --negative:          #c03000;
+  --skull-color:       #6b21a8;
+  --gold:              #c08000;
+  --gold-dark:         #906000;
+
+  /* 兼容旧变量名 */
+  --table-bg:          #f0ebe0;
+  --table-bg-light:    #e8e0d0;
+  --wood:              #5d3217;
+  --carpet-red:        #1d6b2a;
+  --text-main:         #212121;
+  --functional-green:  #209020;
+  --functional-red:    #c03000;
+
+  font-family: 'Ark Pixel 16px Monospaced', 'Courier New', monospace;
+  font-size: 16px;
+}
+
+/* ══════════════════════════════════════════════
+   全局重置
+   ⚠️ 绝对不加 border-radius:0 或 border:none 在
+      NES 元素上 —— 会破坏 border-image 切角和
+      box-shadow 像素阴影
+   ══════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  transition: none !important;
+}
+
+html, body, #app { margin: 0; padding: 0; height: 100%; }
+
+body {
+  background:      var(--app-bg);
+  color:           var(--text-primary);
+  font-family:     'Ark Pixel 16px Monospaced', 'Courier New', monospace;
+  font-size:       16px;
+  line-height:     1.8;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  font-smooth:     never;
+  overflow:        hidden;
+}
+
+.pixel-number { font-variant-numeric: tabular-nums; letter-spacing: .5px; }
+.text-gold    { color: var(--text-gold); }
+.text-pos     { color: var(--positive); }
+.text-neg     { color: var(--negative); }
+
+/* ══════════════════════════════════════════════
+   NES.css 组件 —— 亮色主题，最小化覆盖
+   让 NES.css 按原始设计工作（黑边 / 白底）
+   只调整字体和个别背景色
+   ══════════════════════════════════════════════ */
+
+/* 容器：保持默认白底黑边，只改字体 */
+.nes-container {
+  font-family: 'Ark Pixel 16px Monospaced', 'Courier New', monospace;
+  font-size: 16px;
+}
+
+/* with-title 标题色 */
+.nes-container.with-title > .title {
+  background-color: var(--app-bg);
+  color: #c03000;
+  font-size: 16px;
+  font-family: 'Ark Pixel 16px Monospaced', monospace;
+}
+
+/* 按钮字体覆盖 */
+.nes-btn {
+  font-family: 'Ark Pixel 16px Monospaced', 'Courier New', monospace;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* 进度条 */
+.nes-progress { display: block; height: 18px; }
+
+/* ══════════════════════════════════════════════
+   布局工具
+   ══════════════════════════════════════════════ */
+*::-webkit-scrollbar              { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track        { background: var(--app-bg); }
+*::-webkit-scrollbar-thumb        { background: #999; border: 2px solid var(--app-bg); }
+*::-webkit-scrollbar-thumb:hover  { background: #c03000; }
