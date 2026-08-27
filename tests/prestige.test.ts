@@ -50,7 +50,7 @@ describe('previewPrestigeReward（奖励预览）', () => {
 describe('prestigeReset（执行转生）', () => {
   it('成功：cash 清零、amount 清零、bought 保留、reputation 增加', () => {
     state.cash = new Decimal(1e9)
-    buyDimension(state, 1, 5) // D1 amount=5, bought=5
+    buyDimension(state, 1, 5) // 初始 1 枚 + 买 5 = amount/bought=6
     const before = previewPrestigeReward(state, 1)
 
     const reward = prestigeReset(state, 1)
@@ -58,7 +58,7 @@ describe('prestigeReset（执行转生）', () => {
     expect(reward.eq(before)).toBe(true)
     expect(state.cash.eq(0)).toBe(true)
     expect(state.dimensions[0].amount.eq(0)).toBe(true)
-    expect(state.dimensions[0].bought).toBe(5) // 保留
+    expect(state.dimensions[0].bought).toBe(6) // 保留（初始 1 + 买 5）
     expect(state.prestige.currency.reputation.eq(before)).toBe(true)
     expect(state.prestige.tier).toBe(1)
   })

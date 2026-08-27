@@ -1,23 +1,58 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { PxButton, PxCard, PxProgress } from '@mmt817/pixel-ui'
-import { HELPER_TYPES, totalFlipsPerSec } from '../core'
-import { formatCash } from '../core/format'
-import { PRESTIGE_TIERS } from '../core/data/prestigeTiers'
+import {
+  levelAt,
+  type LevelGoal,
+  type LevelReward,
+} from '../core'
+import { formatCash, formatNumber } from '../core/format'
 import CoinScene from '../components/coins/CoinScene.vue'
 import CoinsTab from './tabs/CoinsTab.vue'
 import HelpersView from './HelpersView.vue'
-import AscensionView from './AscensionView.vue'
+import UpgradesView from './UpgradesView.vue'
 import ChallengesView from './ChallengesView.vue'
+import LevelsView from './LevelsView.vue'
 import { useGameStore } from '../stores/gameStore'
+import { useSound } from '../composables/useSound'
 
-type BottomTab = 'tips' | 'coins' | 'helpers' | 'upgrades' | 'casino'
+type BottomTab = 'tips' | 'coins' | 'helpers' | 'upgrades' | 'challenges' | 'levels'
 
 const store = useGameStore()
 const { state, uiVersion } = storeToRefs(store)
+const { t } = useI18n()
+const { playClick } = useSound()
 const activeTab = ref<BottomTab>('helpers')
+
+// ── 过关确认弹窗（一局一关：达标后须玩家确认才进下一关） ──
+const showLevelConfirm = computed(() => state.value.levels.pendingLevelId !== null)
+/** 当前待确认的关卡（pendingLevelId 对应序号 = completed + 1）。 */
+const pendingLevel = computed(() => {
+  void uiVersion.value
+  return levelAt(state.value.levels.completed + 1)
+})
+
+function pendingGoalText(goal: LevelGoal): string {
+  const label = t(`levels.goals.${goal.type}`)
+  const value = goal.type === 'cash' || goal.type === 'totalEarned'
+    ? formatCash(goal.target)
+    : formatNumber(goal.target)
+  return `${label} ${value}`
+}
+
+function pendingRewardText(reward: LevelReward): string {
+  if (reward.type === 'clickMult') return `${t('levels.rewards.clickMult')} ×${reward.value}`
+  if (reward.type === 'incomeMult') return `${t('levels.rewards.incomeMult')} ×${reward.value}`
+  return `${t('levels.rewards.flag')} ${t(`levels.flags.${reward.flag}`)}`
+}
+
+function onTab(id: BottomTab): void {
+  playClick()
+  activeTab.value = id
+}
 
 // ── 桌布：可拖动平移的大世界 ──
 const feltRef = ref<HTMLElement | null>(null)
@@ -47,7 +82,7 @@ const worldH = computed(() => Math.max(feltH.value * 1.7, 560))
 const panX = ref(0)
 const panY = ref(0)
 const dragging = ref(false)
-const dragState = { active: false, sx: 0, sy: 0, px: 0, py: 0, moved: 0 }
+const dragState = { active: false, sx: 0, sy: 0, px: 0, py: 0, moved: false }
 
 /** 平移量 clamp 到 [0, world-view]，避免把视口拖出世界边界。 */
 const clampedPanX = computed(() =>
@@ -64,14 +99,14 @@ const worldStyle = computed(() => ({
 }))
 
 function onPointerDown(e: PointerEvent): void {
-  // 点击硬币时不启动桌布平移（由 CoinScene 的 click 单独处理翻转）
+  // 点击硬币时不启动桌布平移（硬币由 CoinScene 处理）；空白处的点击/拖动由本层接管
   if ((e.target as HTMLElement).closest('.cs-coin')) return
   dragState.active = true
+  dragState.moved = false
   dragState.sx = e.clientX
   dragState.sy = e.clientY
   dragState.px = panX.value
   dragState.py = panY.value
-  dragState.moved = 0
   dragging.value = true
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
 }
@@ -80,55 +115,48 @@ function onPointerMove(e: PointerEvent): void {
   if (!dragState.active) return
   const dx = e.clientX - dragState.sx
   const dy = e.clientY - dragState.sy
-  dragState.moved += Math.abs(dx) + Math.abs(dy)
+  // 超过阈值才算"拖动"，用于区分点击与拖拽
+  if (!dragState.moved && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+    dragState.moved = true
+  }
   // 反向：向右拖 → 世界向右移动（看到更多左侧），符合视口滚动直觉
   panX.value = dragState.px - dx
   panY.value = dragState.py - dy
 }
 
-function onPointerUp(e: PointerEvent): void {
-  const wasTap = dragState.active && dragState.moved < 8
+function onPointerUp(): void {
+  const wasDrag = dragState.moved
   dragState.active = false
   dragging.value = false
-  if (wasTap) {
-    // 未拖动 → 视为点击翻转一枚硬币
-    store.doFlip()
-    spawnTapCoin(e)
+  // 点击（非拖拽）：在桌布内翻转一枚随机硬币
+  if (!wasDrag) {
+    flipRandomCoin()
   }
 }
 
-/** 点击处 +$ 反馈。 */
-const tapCoins = ref<Array<{ id: number; x: number; y: number }>>([])
-let tapId = 0
-function spawnTapCoin(e: PointerEvent): void {
-  const rect = feltRef.value?.getBoundingClientRect()
-  if (!rect) return
-  const id = tapId++
-  tapCoins.value.push({ id, x: e.clientX - rect.left, y: e.clientY - rect.top })
-  setTimeout(() => {
-    tapCoins.value = tapCoins.value.filter((c) => c.id !== id)
-  }, 700)
+function onPointerCancel(): void {
+  dragState.active = false
+  dragging.value = false
 }
 
-// ── 台面读数 ──
+// ── 翻转按钮：随机翻转桌面上的一枚硬币 ──
+const coinSceneRef = ref<InstanceType<typeof CoinScene> | null>(null)
 
-/** 助手总数。 */
-const helpersTotal = computed(() => {
-  void uiVersion.value
-  return HELPER_TYPES.reduce((sum, h) => sum + (state.value.helpers[h.id]?.count ?? 0), 0)
+/** 点击"翻转硬币"按钮：随机翻转桌面上的一枚硬币（复用 CoinScene 的抛币结算）。 */
+function flipRandomCoin(): void {
+  coinSceneRef.value?.flipRandomCoin()
+}
+
+// ── 上桌进度：购买/雇佣后精灵逐枚上桌的倒计时进度条 ──
+const spawnStatus = ref<{ busy: boolean; ratio: number; remaining: number }>({
+  busy: false,
+  ratio: 1,
+  remaining: 0,
 })
 
-/** 硬币总数（所有维度已购买数量之和）。 */
-const coinsTotal = computed(() => {
-  void uiVersion.value
-  return state.value.dimensions.reduce((sum, d) => sum + d.bought, 0)
-})
-
-/** 每秒抛硬币总量。 */
-const totalFlips = computed(() => {
-  void uiVersion.value
-  return totalFlipsPerSec(state.value)
-})
+function onSpawnProgress(payload: { busy: boolean; ratio: number; remaining: number }): void {
+  spawnStatus.value = payload
+}
 
 // ── 草地参照物（野草 / 小花 / 石头）：固定在世界坐标，随 world 平移，
 //    让拖动时有明显参照感，用户能感知自己在拖动草地。 ──
@@ -143,7 +171,7 @@ interface Decor {
   hue: string
 }
 const decor = ref<Decor[]>([])
-const FLOWER_HUES = ['#ffd700', '#ff6b6b', '#ffffff', '#ff9f43']
+const FLOWER_HUES = ['#ffd700', '#e8c15a', '#ffffff', '#e0b84c']
 const rnd = (a: number, b: number): number => a + Math.random() * (b - a)
 
 function makeDecor(): void {
@@ -188,24 +216,13 @@ function makeDecor(): void {
 }
 makeDecor()
 
-const tier1 = PRESTIGE_TIERS[0]!
-const round = computed(() => state.value.prestige.tier)
-const cashText = computed(() => {
-  void uiVersion.value
-  return formatCash(state.value.cash)
-})
-const thresholdText = computed(() => formatCash(tier1.threshold))
-const progressPct = computed(() => {
-  void uiVersion.value
-  return Math.min(100, state.value.cash.div(tier1.threshold).mul(100).toNumber())
-})
-
 const tabs: Array<{ id: BottomTab; label: string }> = [
-  { id: 'tips',     label: '核心玩法' },
-  { id: 'coins',    label: '硬币'     },
-  { id: 'helpers',  label: '助手'     },
-  { id: 'upgrades', label: '升级'     },
-  { id: 'casino',   label: '赌场'     },
+  { id: 'tips',       label: '核心玩法' },
+  { id: 'coins',      label: '硬币'     },
+  { id: 'helpers',    label: '助手'     },
+  { id: 'upgrades',   label: '当局升级' },
+  { id: 'challenges', label: '挑战'     },
+  { id: 'levels',     label: '任务关卡' },
 ]
 </script>
 
@@ -222,15 +239,28 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
           @pointerdown="onPointerDown"
           @pointermove="onPointerMove"
           @pointerup="onPointerUp"
-          @pointercancel="onPointerUp"
+          @pointercancel="onPointerCancel"
         >
           <!-- 自然草地氛围：暗角 + 内框（叠在草地世界之上） -->
           <div class="felt-vignette" />
           <div class="felt-rail" />
 
           <div class="felt-hint pixel-number">
-            拖动草地平移 · 点击硬币抛掷 · $ 得钱 · ☠ 得骷髅币
+            点击桌布翻转硬币 · 拖动草地平移 · $ 得钱 · ☠ 得骷髅币
           </div>
+
+          <!-- 上桌进度条：购买/雇佣后精灵逐枚上桌的倒计时 -->
+          <Transition name="spawn-fade">
+            <div v-if="spawnStatus.busy" class="spawn-status pixel-number">
+              <span class="spawn-status__label">上桌中 · 剩 {{ spawnStatus.remaining }}</span>
+              <PxProgress
+                class="spawn-status__bar"
+                :percentage="spawnStatus.ratio * 100"
+                status="success"
+                :show-text="false"
+              />
+            </div>
+          </Transition>
 
           <!-- 可平移的草地世界：参照物 + 硬币 + 助手 -->
           <div class="felt-world" :style="worldStyle">
@@ -257,41 +287,15 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
               </div>
             </div>
             <CoinScene
+              ref="coinSceneRef"
               :world-w="worldW"
               :world-h="worldH"
               :view-x="clampedPanX"
               :view-y="clampedPanY"
               :view-w="feltW"
               :view-h="feltH"
+              @spawn-progress="onSpawnProgress"
             />
-          </div>
-
-          <!-- 点击空白处 +$ 反馈 -->
-          <div
-            v-for="c in tapCoins"
-            :key="c.id"
-            class="tap-coin pixel-number"
-            :style="{ left: `${c.x}px`, top: `${c.y}px` }"
-          >
-            +$
-          </div>
-        </div>
-
-        <!-- 台面状态行 -->
-        <div class="table-statusbar pixel-number">
-          <div class="tsb-left">
-            <span>第 {{ round }} 关 · {{ cashText }} / {{ thresholdText }} ({{ progressPct.toFixed(0) }}%)</span>
-            <PxProgress
-              class="tsb-progress"
-              :percentage="progressPct"
-              status="warning"
-              :show-text="false"
-            />
-          </div>
-          <div class="tsb-right">
-            <span>硬币 {{ coinsTotal }}</span>
-            <span>助手 {{ helpersTotal }}</span>
-            <span>{{ totalFlips.toFixed(1) }} flips/s</span>
           </div>
         </div>
       </PxCard>
@@ -302,9 +306,10 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
       <PxButton
         v-for="tab in tabs"
         :key="tab.id"
+        :use-throttle="false"
         class="btab"
         :type="activeTab === tab.id ? 'warning' : 'base'"
-        @click="activeTab = tab.id"
+        @click="onTab(tab.id)"
       >
         {{ tab.label }}
       </PxButton>
@@ -314,16 +319,87 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
     <div class="tab-body">
       <PxCard v-if="activeTab === 'tips'" class="tab-tips px-card--dark pixel-number">
         <p class="tab-tips__title text-gold">[ 核心玩法 ]</p>
-        <p>· 拖动桌面查看更多助手，点击桌面翻转硬币</p>
-        <p>· $ 面 → 赢得现金 · ☠ 面 → 获得骷髅代币</p>
-        <p>· 购买更多硬币与助手提升每秒翻转量</p>
-        <p>· 积攒现金后可「重生」获得永久增益</p>
+
+        <p class="tab-tips__sub text-gold">· 基本循环</p>
+        <p>拖动桌面查看全景，点击桌布上的硬币抛掷翻转。每次翻转：<b>$ 面（50%）</b>赢现金；<b>☠ 面（50%）</b>得 1 枚骷髅币。用现金购买硬币与助手，让收益自动滚起来。</p>
+        <p>点击收益 = 基础值 × (1 + 累计购买硬币数 × 0.1) × 点击倍率——硬币越多，每次点击赚得越多。</p>
+
+        <p class="tab-tips__sub text-gold">· 硬币维度（级联生产链）</p>
+        <p>8 层硬币 D1-D8 构成级联生产链：D8→…→D2→D1→现金，高层产出注入低一层，由 D1 最终产出现金。</p>
+        <p>产出倍率 = baseRate × 2^(购买数/25)：每买 25 个该层，产出翻倍，指数增长。</p>
+        <p>解锁：D1 铜币开局自带；D2 银币赚 50 万；D3 金币赚 1,000 万；D4 铂金抛 1 千次；D5 钻石赚 10 亿；D6 红宝石得 100 骷髅币；D7 祖母绿抛 5 万次；D8 黑曜石赚 1 万亿。</p>
+
+        <p class="tab-tips__sub text-gold">· 助手（自动抛币）</p>
+        <p>雇佣助手自动抛币，速率从 0.5 次/秒到 5,000 次/秒；解锁条件随档次递增（如赚 5 万、抛 5 千次、得 30 骷髅币…）。新手助手开局即可雇佣。</p>
+        <p>助手可戴上扭蛋机抽到的帽子外观（纯收藏）。</p>
+
+        <p class="tab-tips__sub text-gold">· 任务关卡（一局一关）</p>
+        <p>主线 12 关，从极小目标逐关抬升。达成目标后<b>不会自动推进</b>，需点击"过关"才应用奖励进入下一关（也可"暂缓"稍后再过）。</p>
+        <p>奖励为永久加成：点击/收益倍率 ×（跨转生保留）、机制解锁（批量购买、自动购买器等）。关卡 1/2/6/9/12 给收益倍率，3/5/10 解锁机制，其余给点击倍率，最高 ×5。</p>
+
+        <p class="tab-tips__sub text-gold">· 转生（重生）</p>
+        <p>现金 ≥ 100 万可转生，按 <b>⌊(log₁₀现金 - 6)²⌋</b> 结算「名声点」，现金越高收益越陡。</p>
+        <p>转生清空：现金、维度产出、升级、助手；保留：已购买维度（阶梯翻倍）、名声点、天赋、解锁位、扭蛋收藏、骷髅币、累计统计与关卡"永生加成"。</p>
+        <p>关卡进度会刷回第 1 关重新打，但永生加成保留，越重生越强。</p>
+
+        <p class="tab-tips__sub text-gold">· 天赋树</p>
+        <p>用名声点点亮三系天赋：<b>离线挂机 / 在线操作 / 维度偏向</b>，共 9 节点，可无损重置，自由搭配 Build。</p>
+
+        <p class="tab-tips__sub text-gold">· 规则颠覆挑战</p>
+        <p>挑战会改写规则，通关解锁永久机制位：</p>
+        <p>· <b>Even Only</b>：封禁奇数阶维度 → 解锁批量购买；<br>
+         · <b>Reverse Flow</b>：购买时从高阶维度扣资源 → 解锁自动购买条件；<br>
+         · <b>Dark Matter</b>：opposition 每秒增长，超现金比例即失败 → 解锁挑战切换。</p>
+
+        <p class="tab-tips__sub text-gold">· 扭蛋机 & 收藏</p>
+        <p>消耗 1 骷髅币抽帽子：普通 70% / 稀有 20% / 史诗 8% / 传说 2%（金帽、彩虹帽）。给助手戴上并加入收藏。</p>
+
+        <p class="tab-tips__sub text-gold">· 自动化脚本</p>
+        <p>高级阶段用受限 DSL 写脚本挂机（安全，不执行任意代码），例：<br>
+        <span class="tab-tips__code">if cash &gt;= 1000000 then prestige 1</span><br>
+        <span class="tab-tips__code">if reputation &gt;= 5 then start challenge darkMatter</span></p>
+
+        <p class="tab-tips__sub text-gold">· 自动购买器</p>
+        <p>每个硬币维度可开启独立自动购买开关，钱够即自动买，由关卡/挑战解锁。</p>
       </PxCard>
       <CoinsTab v-else-if="activeTab === 'coins'" />
       <HelpersView v-else-if="activeTab === 'helpers'" />
-      <AscensionView v-else-if="activeTab === 'upgrades'" />
-      <ChallengesView v-else />
+      <UpgradesView v-else-if="activeTab === 'upgrades'" />
+      <ChallengesView v-else-if="activeTab === 'challenges'" />
+      <LevelsView v-else />
     </div>
+
+    <!-- ── 过关确认弹窗 ── -->
+    <Teleport to="body">
+      <div
+        v-if="showLevelConfirm && pendingLevel"
+        class="level-confirm-overlay"
+        role="dialog"
+        aria-modal="true"
+        @click.self="store.dismissLevel()"
+      >
+        <PxCard class="level-confirm px-card--dark">
+          <h2 class="level-confirm__title pixel-number text-gold">
+            {{ t('levels.confirmTitle', { n: state.levels.completed + 1 }) }}
+          </h2>
+          <p class="level-confirm__goal pixel-number">
+            {{ t('levels.goal') }}：{{ pendingGoalText(pendingLevel.goal) }}
+          </p>
+          <p class="level-confirm__reward pixel-number">
+            {{ t('levels.reward') }}：{{ pendingRewardText(pendingLevel.reward) }}
+          </p>
+          <p class="level-confirm__hint pixel-number">{{ t('levels.confirmHint') }}</p>
+          <div class="level-confirm__actions">
+            <PxButton :use-throttle="false" type="warning" @click="store.confirmLevel()">
+              {{ t('levels.confirmYes') }}
+            </PxButton>
+            <PxButton :use-throttle="false" type="base" @click="store.dismissLevel()">
+              {{ t('levels.confirmNo') }}
+            </PxButton>
+          </div>
+        </PxCard>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -349,7 +425,7 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
 }
 
 .table-title {
-  color: #c03000 !important;
+  color: #b8912b !important;
   font-size: 16px;
   font-weight: 700;
 }
@@ -366,8 +442,8 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
   user-select: none;
   touch-action: none;
   image-rendering: pixelated;
-  /* 视口底色：草绿（世界边缘露出的兜底色） */
-  background-color: #4a8a35;
+  /* 视口底色：深墨绿（世界边缘露出的兜底色） */
+  background-color: #3d6b2e;
   background-image:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.06)),
     radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.03) 1px, transparent 1.4px);
@@ -416,7 +492,7 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
   z-index: 10;
   will-change: transform;
   /* 多层草地：纵向色温渐变 + 阳光斑 + 远景压暗 + 多尺度草叶点阵 + 小土丘 */
-  background-color: #4d9a37;
+  background-color: #457a36;
   background-image:
     /* 1. 阳光斑（左上暖光） */
     radial-gradient(ellipse 60% 45% at 25% 18%, rgba(255, 245, 170, 0.22), rgba(255, 245, 170, 0) 70%),
@@ -429,8 +505,8 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
     radial-gradient(ellipse 220px 70px at 72% 62%, rgba(20, 60, 20, 0.16), transparent 70%),
     radial-gradient(ellipse 160px 50px at 48% 85%, rgba(20, 60, 20, 0.14), transparent 70%),
     /* 5. 浅色草尖（密） */
-    radial-gradient(circle at 12% 22%, #6cc04a 1.2px, transparent 1.8px),
-    radial-gradient(circle at 64% 70%, #6cc04a 1px, transparent 1.5px),
+    radial-gradient(circle at 12% 22%, #5aa34a 1.2px, transparent 1.8px),
+    radial-gradient(circle at 64% 70%, #5aa34a 1px, transparent 1.5px),
     /* 6. 深色草根 */
     radial-gradient(circle at 86% 18%, rgba(20, 50, 15, 0.18) 1px, transparent 1.6px),
     radial-gradient(circle at 38% 88%, rgba(20, 50, 15, 0.16) 1px, transparent 1.6px),
@@ -477,14 +553,14 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
 .decor--grass .g1 {
   left: 0;
   height: 13px;
-  background: linear-gradient(180deg, #7ed15a 0 4px, #3f8a35 4px);
+  background: linear-gradient(180deg, #66ae52 0 4px, #3f8a35 4px);
   transform: skewX(-12deg);
   box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.18);
 }
 .decor--grass .g2 {
   left: 5px;
   height: 18px;
-  background: linear-gradient(180deg, #8fdc66 0 5px, #2f6d2a 5px);
+  background: linear-gradient(180deg, #74bd5e 0 5px, #2f6d2a 5px);
   box-shadow:
     inset 1px 0 0 rgba(255, 255, 255, 0.2),
     inset -1px 0 0 rgba(0, 0, 0, 0.18);
@@ -492,7 +568,7 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
 .decor--grass .g3 {
   left: 10px;
   height: 11px;
-  background: linear-gradient(180deg, #6cc04a 0 3px, #356f25 3px);
+  background: linear-gradient(180deg, #5aa34a 0 3px, #356f25 3px);
   transform: skewX(10deg);
   box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.16);
 }
@@ -501,7 +577,7 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
   bottom: 0;
   height: 8px;
   width: 2px;
-  background: #4a9437;
+  background: #3f7d34;
   transform: skewX(-6deg);
 }
 
@@ -589,43 +665,41 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6), 0 0 4px rgba(0, 0, 0, 0.4);
 }
 
-/* 点击处 +$ 反馈 */
-.tap-coin {
+/* 上桌进度条：购买/雇佣后精灵逐枚上桌的倒计时 */
+.spawn-status {
   position: absolute;
-  color: #ffe066;
-  font-size: 16px;
-  font-weight: 700;
-  text-shadow: 2px 2px 0 #000;
-  pointer-events: none;
-  z-index: 20;
-  animation: tap-coin-up 0.7s steps(6, end) forwards;
-}
-
-@keyframes tap-coin-up {
-  0%   { transform: translateY(0) scale(1); opacity: 1; }
-  100% { transform: translateY(-26px) scale(1.2); opacity: 0; }
-}
-
-/* 台面状态行 */
-.table-statusbar {
+  top: 34px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  padding: 8px 4px 4px;
-  font-size: 16px;
-  color: var(--text-secondary);
+  width: 240px;
+  z-index: 15;
+  pointer-events: none;
 }
 
-.tsb-left {
+.spawn-status__label {
+  color: #ffe066;
+  font-size: 14px;
+  white-space: nowrap;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6), 0 0 4px rgba(0, 0, 0, 0.4);
+}
+
+.spawn-status__bar {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  height: 10px !important;
 }
 
-.tsb-progress { width: 100%; height: 16px !important; }
-.tsb-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+/* 上桌进度条淡入淡出 */
+.spawn-fade-enter-active,
+.spawn-fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+.spawn-fade-enter-from,
+.spawn-fade-leave-to {
+  opacity: 0;
+}
 
 /* ── Tab 导航（亮色） ── */
 .bottom-tabs {
@@ -668,5 +742,62 @@ const tabs: Array<{ id: BottomTab; label: string }> = [
 
 .tab-tips p {
   margin: 0 0 4px;
+}
+
+.tab-tips__sub {
+  margin-top: 10px;
+  color: #b8912b;
+}
+
+.tab-tips__code {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 6px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  color: #ffe066;
+  font-size: 15px;
+}
+
+/* ── 过关确认弹窗 ── */
+.level-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.level-confirm {
+  display: block;
+  width: 380px;
+  max-width: 90vw;
+  padding: 16px;
+  --px-border-color: var(--gold);
+}
+
+.level-confirm__title {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.level-confirm__goal,
+.level-confirm__reward {
+  color: var(--text-main);
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.level-confirm__hint {
+  color: var(--text-dim);
+  font-size: 16px;
+  margin: 10px 0 14px;
+}
+
+.level-confirm__actions {
+  display: flex;
+  gap: 10px;
 }
 </style>

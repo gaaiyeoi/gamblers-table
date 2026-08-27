@@ -83,7 +83,8 @@ export class GameLoop {
     while (this.accumulator >= this.stepMs) {
       EventHub.logic.emit(GAME_EVENT.GAME_TICK_BEFORE)
       this.onTick(this.stepMs)
-      EventHub.logic.emit(GAME_EVENT.GAME_TICK_AFTER)
+      // 带本次 tick 毫秒数派发，供依赖固定步长的订阅者（如 SpawnQueue）消费
+      EventHub.logic.emit(GAME_EVENT.GAME_TICK_AFTER, this.stepMs)
       this.accumulator -= this.stepMs
     }
   }

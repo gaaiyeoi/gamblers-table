@@ -11,7 +11,9 @@ import type { GameState } from '../state/gameState'
  * - 作用域（清空）：cash、dimensions.amount、upgrades、helpers.count
  * - 保留（不重置）：bought（阶梯翻倍升级跨转生保留）、prestige.currency（高阶通货）、
  *   talents、unlockFlags、gacha.collection、skullTokens、helpers.hat（外观收藏）、
- *   stats.totalFlips（统计）
+ *   stats（累计统计）、levels.clickMult/incomeMult（关卡"永生加成"）
+ * - 重生清空：levels.completed（关卡进度刷成 0，重新从第 1 关打起）与
+ *   levels.pendingLevelId（待确认标记），机制解锁 unlockFlags 与永生加成保留
  */
 
 export { PRESTIGE_TIERS, tierOf, type PrestigeTierDef }
@@ -57,6 +59,12 @@ export function prestigeReset(state: GameState, tier: number): Decimal {
     helper.count = 0
     // 帽子（外观）保留
   }
+
+  // 重生：关卡进度刷成 0（回到第 1 关重新打），并清除待确认标记；
+  // clickMult/incomeMult 与 unlockFlags 作为"永生加成"保留，使重打更快。
+  state.levels.completed = 0
+  state.levels.pendingLevelId = null
+  state.levels.dismissedLevelId = null
 
   EventHub.logic.emit(GAME_EVENT.PRESTIGE_RESET_AFTER, { tier, reward })
   return reward

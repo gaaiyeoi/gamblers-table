@@ -20,39 +20,39 @@
   --panel-bg:          #1a2233;
   --panel-bg-deep:     #141b2a;
 
-  --accent:            #d4a017;   /* 暗金 */
-  --accent-hover:      #e8b52a;
-  --accent-dim:        rgba(212,160,23,.15);
+  --accent:            #b8912b;   /* 暗金 */
+  --accent-hover:      #c9a23a;
+  --accent-dim:        rgba(184,145,43,.15);
   --accent-text:       #0f1626;
 
-  --felt:              #1d6b2a;
-  --felt-light:        #267a35;
-  --felt-dark:         #124a1e;
+  --felt:              #1f5130;
+  --felt-light:        #2a6438;
+  --felt-dark:         #143322;
   --table-frame:       #0c1321;
 
   /* 米白文字（深蓝背景上保持可读） */
   --text-primary:      #ecdcc0;
   --text-secondary:    #b8b0a0;
   --text-dim:          #8a8372;
-  --text-gold:         #e0b84c;
+  --text-gold:         #c4a34a;
 
   --positive:          #4caf50;
   --negative:          #e24c3b;
   --skull-color:       #c084fc;
-  --gold:              #d4a017;
-  --gold-dark:         #a07c0a;
+  --gold:              #b8912b;
+  --gold-dark:         #8c6b1f;
 
   /* 兼容旧变量名 */
   --table-bg:          #1a2233;
   --table-bg-light:    #141b2a;
   --wood:              #1a2233;
-  --carpet-red:        #1d6b2a;
+  --carpet-red:        #1f5130;
   --text-main:         #ecdcc0;
   --functional-green:  #4caf50;
   --functional-red:    #e24c3b;
 
   /* NES 风格像素边框用色（暗金勾边） */
-  --light-border:      #d4a017;
+  --light-border:      #b8912b;
 
   font-family: 'Ark Pixel 16px Monospaced', 'Courier New', monospace;
   font-size: 16px;
@@ -69,9 +69,9 @@
 */
 :root, * {
   --px-color-base: #ecdcc0;
-  --px-color-primary: #d4a017;
+  --px-color-primary: #b8912b;
   --px-color-success: #4caf50;
-  --px-color-warning: #d4a017;
+  --px-color-warning: #b8912b;
   --px-color-danger: #e24c3b;
   --px-color-sakura: #c084fc;
 }
@@ -131,7 +131,7 @@ body {
   /* 无条件填充：即使 pixelbox paint 失效也有底色（paint 正常时同色覆盖，视觉一致） */
   background-color: var(--px-bg-color) !important;
   --px-bg-color: #1a2233 !important;
-  --px-border-color: #d4a017 !important;
+  --px-border-color: #b8912b !important;
   --px-bg-shadow-color: #000 !important;
   color: #ecdcc0 !important;
 }
@@ -139,7 +139,7 @@ body {
 /* 更深的深蓝卡片（赌台背景、模态层等） */
 .px-card.px-card--dark {
   --px-bg-color: #141b2a !important;
-  --px-border-color: #d4a017 !important;
+  --px-border-color: #b8912b !important;
   --px-bg-shadow-color: #000 !important;
   color: #ecdcc0 !important;
 }
@@ -149,15 +149,15 @@ body {
   /* 无条件填充（语义色由各类型变体覆盖 --px-bg-color 后生效） */
   background-color: var(--px-bg-color) !important;
   --px-bg-color: #1a2233 !important;
-  --px-border-color: #d4a017 !important;
+  --px-border-color: #b8912b !important;
   --px-bg-shadow-color: #000 !important;
   color: #ecdcc0 !important;
 }
 
 /* 按钮语义色（边框与底色同色，NES 风格） */
 .px-button--primary {
-  --px-bg-color: #d4a017 !important;
-  --px-border-color: #d4a017 !important;
+  --px-bg-color: #b8912b !important;
+  --px-border-color: #b8912b !important;
   color: #0f1626 !important;
 }
 .px-button--success {
@@ -166,8 +166,8 @@ body {
   color: #0f1a10 !important;
 }
 .px-button--warning {
-  --px-bg-color: #d4a017 !important;
-  --px-border-color: #d4a017 !important;
+  --px-bg-color: #b8912b !important;
+  --px-border-color: #b8912b !important;
   color: #0f1626 !important;
 }
 .px-button--danger {
@@ -188,7 +188,7 @@ body {
   width: 100%;
   --px-progress-bar-container-color: #141b2a !important;
   --px-bg-color: #141b2a !important;
-  --px-border-color: #d4a017 !important;
+  --px-border-color: #b8912b !important;
   color: #ecdcc0 !important;
 }
 
@@ -203,7 +203,7 @@ body {
   .px-button {
     background-color: var(--px-bg-color) !important;
     background-image: none !important;
-    border: 4px solid var(--px-border-color, #d4a017);
+    border: 4px solid var(--px-border-color, #b8912b);
     border-radius: 0;
     box-shadow:
       inset -4px -4px 0 var(--px-bg-shadow-color, rgba(0,0,0,0.5)),
@@ -226,13 +226,13 @@ body {
   .px-progress-bar__outer {
     background-color: #141b2a !important;
     background-image: none !important;
-    border: 2px solid #d4a017;
+    border: 2px solid #b8912b;
     border-radius: 0;
   }
   /* 进度条填充 */
   .px-progress-bar__inner {
     background-image: none !important;
-    background-color: var(--px-progress-bar-bg-color, #d4a017) !important;
+    background-color: var(--px-progress-bar-bg-color, #b8912b) !important;
   }
 }
 
@@ -242,4 +242,4 @@ body {
 *::-webkit-scrollbar              { width: 8px; height: 8px; }
 *::-webkit-scrollbar-track        { background: var(--app-bg); }
 *::-webkit-scrollbar-thumb        { background: #999; border: 2px solid var(--app-bg); }
-*::-webkit-scrollbar-thumb:hover  { background: #c03000; }
+*::-webkit-scrollbar-thumb:hover  { background: #b8912b; }

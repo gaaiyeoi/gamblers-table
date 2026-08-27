@@ -67,6 +67,7 @@ function isUnlocked(talentId: string): boolean {
             {{ formatNumber(tierDef.threshold) }}
           </div>
           <PxButton
+            :use-throttle="false"
             type="success"
             :disabled="!store.state.cash.gte(tierDef.threshold)"
             @click="store.doPrestige(tierDef.tier)"
@@ -84,7 +85,7 @@ function isUnlocked(talentId: string): boolean {
         <span class="pixel-number">
           {{ t('talents.points') }}：{{ store.state.talents.length }}
         </span>
-        <PxButton type="warning" @click="store.doFreeResetTalents()">
+        <PxButton :use-throttle="false" type="warning" @click="store.doFreeResetTalents()">
           {{ t('talents.reset') }}
         </PxButton>
       </div>

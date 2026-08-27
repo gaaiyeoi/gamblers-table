@@ -21,7 +21,8 @@ beforeEach(() => {
 
 describe('costOfDimension（成本几何级数）', () => {
   it('首购成本 = baseCost', () => {
-    expect(costOfDimension(state, 1, 1).eq(15)).toBe(true)
+    // D1 开局自带 1 枚，首购成本含 growth^1；D2/D3 初始未持有，首购即 baseCost
+    expect(costOfDimension(state, 2, 1).eq(150)).toBe(true)
     expect(costOfDimension(state, 3, 1).eq(11000)).toBe(true)
   })
 
@@ -47,8 +48,8 @@ describe('buyDimension（购买）', () => {
   it('成功购买：扣现金 + 增加 bought/amount', () => {
     state.cash = new Decimal(1000)
     expect(buyDimension(state, 1, 2)).toBe(true)
-    expect(state.dimensions[0].bought).toBe(2)
-    expect(state.dimensions[0].amount.eq(2)).toBe(true)
+    expect(state.dimensions[0].bought).toBe(3) // 初始 1 + 买 2
+    expect(state.dimensions[0].amount.eq(3)).toBe(true)
     expect(state.cash.lt(1000)).toBe(true)
   })
 
@@ -56,7 +57,7 @@ describe('buyDimension（购买）', () => {
     state.cash = new Decimal(5)
     expect(canAffordDimension(state, 1, 1)).toBe(false)
     expect(buyDimension(state, 1, 1)).toBe(false)
-    expect(state.dimensions[0].bought).toBe(0)
+    expect(state.dimensions[0].bought).toBe(1) // 初始 1 枚保持不变
   })
 })
 
@@ -72,6 +73,7 @@ describe('dimensionMultiplier（阶梯翻倍）', () => {
 
 describe('tickDerivativeChain（导数级联）', () => {
   it('D1 无产出时现金不增长', () => {
+    state.dimensions[0].amount = new Decimal(0) // 模拟无产出（开局自带 1 枚会产钱）
     const before = state.cash
     tickDerivativeChain(state, 1000)
     expect(state.cash.eq(before)).toBe(true)

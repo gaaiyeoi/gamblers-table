@@ -1,10 +1,24 @@
 <script setup lang="ts">
 import { PxButton } from '@mmt817/pixel-ui'
 
-import type { CenterPanel } from '../../App.vue'
+import { useSound } from '../../composables/useSound'
+import { useUiStore, type CenterPanel } from '../../stores/uiStore'
 
 defineProps<{ activePanel: CenterPanel }>()
 const emit = defineEmits<{ navigate: [panel: CenterPanel] }>()
+
+const ui = useUiStore()
+const { playClick } = useSound()
+
+function onNavigate(panel: CenterPanel): void {
+  playClick()
+  emit('navigate', panel)
+}
+
+function onSettings(): void {
+  playClick()
+  ui.openSettings()
+}
 
 interface NavItem { id: CenterPanel; label: string; icon: string }
 const sections: Array<{ title: string; items: NavItem[] }> = [
@@ -37,9 +51,10 @@ const bottomItems: NavItem[] = [
       <PxButton
         v-for="item in section.items"
         :key="`${item.id}-${item.label}`"
+        :use-throttle="false"
         class="nav-item"
         :type="activePanel === item.id ? 'danger' : 'base'"
-        @click="emit('navigate', item.id)"
+        @click="onNavigate(item.id)"
       >
         <span class="nav-item__icon">{{ item.icon }}</span>
         {{ item.label }}
@@ -51,8 +66,9 @@ const bottomItems: NavItem[] = [
     <PxButton
       v-for="item in bottomItems"
       :key="item.label"
+      :use-throttle="false"
       class="nav-item"
-      @click="emit('navigate', item.id)"
+      @click="onNavigate(item.id)"
     >
       <span class="nav-item__icon">{{ item.icon }}</span>
       {{ item.label }}
@@ -60,7 +76,7 @@ const bottomItems: NavItem[] = [
 
     <div class="section-divider" />
     <div class="section-header">系统</div>
-    <PxButton class="nav-item">
+    <PxButton :use-throttle="false" class="nav-item" @click="onSettings">
       <span class="nav-item__icon">ℹ</span>
       设置
     </PxButton>
@@ -69,7 +85,7 @@ const bottomItems: NavItem[] = [
 
 <style scoped>
 .left-sidebar {
-  width: 168px;
+  width: 320px;
   flex-shrink: 0;
   background: var(--sidebar-bg);
   border-right: 4px solid #212121;

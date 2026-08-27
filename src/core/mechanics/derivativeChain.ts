@@ -3,6 +3,8 @@ import Decimal from 'break_infinity.js'
 import { Lazy, GameCache } from '../cache'
 import { EventHub, GAME_EVENT } from '../engine/eventBus'
 import { applyReversePurchase, isDimensionBanned } from './challenges'
+import { isCoinUnlocked } from './coins'
+import { incomeMultiplier } from './levels'
 import { doublingMultiplier } from '../math'
 import type { GameState } from '../state/gameState'
 import { COIN_TYPES, coinTypeOf } from '../data/coinTypes'
@@ -47,7 +49,7 @@ export function tickDerivativeChain(state: GameState, dtMs: number): void {
     const rate = dimensionProductionPerSecond(state, tier)
     state.dimensions[tier - 2].amount = state.dimensions[tier - 2].amount.add(rate.mul(dt))
   }
-  const cashGain = dimensionProductionPerSecond(state, 1).mul(dt)
+  const cashGain = dimensionProductionPerSecond(state, 1).mul(dt).mul(incomeMultiplier(state))
   state.cash = state.cash.add(cashGain)
   state.stats.totalEarned = state.stats.totalEarned.add(cashGain)
 }
@@ -75,6 +77,8 @@ export function canAffordDimension(state: GameState, tier: number, count = 1): b
 export function buyDimension(state: GameState, tier: number, count = 1): boolean {
   const dim = state.dimensions[tier - 1]
   if (isDimensionBanned(state, tier)) return false
+  // 门控：未解锁的硬币不可购买。
+  if (!isCoinUnlocked(state, tier)) return false
   const cost = costOfDimension(state, tier, count)
   if (state.cash.lt(cost)) return false
   if (!applyReversePurchase(state, tier, count)) return false
@@ -82,6 +86,7 @@ export function buyDimension(state: GameState, tier: number, count = 1): boolean
   state.cash = state.cash.sub(cost)
   dim.bought += count
   dim.amount = dim.amount.add(count)
+  state.stats.totalDimensionsBought += count
   EventHub.logic.emit(GAME_EVENT.DIMENSION_BOUGHT, { tier, count })
   EventHub.logic.emit(GAME_EVENT.CASH_CHANGED)
   return true

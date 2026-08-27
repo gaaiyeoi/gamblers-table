@@ -4,7 +4,10 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { PxButton, PxCard } from '@mmt817/pixel-ui'
-import { CHALLENGES, isChallengeCompleted } from '../core'
+import {
+  CHALLENGES,
+  isChallengeCompleted,
+} from '../core'
 import { formatNumber } from '../core/format'
 import { useGameStore } from '../stores/gameStore'
 
@@ -43,8 +46,9 @@ function start(challengeId: string): void {
 
 <template>
   <div class="challenges-view">
-    <h1 class="pixel-number text-gold">{{ t('tabs.challenges') }}</h1>
+    <h1 class="pixel-number text-gold">{{ t('levels.advancedTitle') }}</h1>
 
+    <!-- 进阶挑战（规则颠覆） -->
     <div class="challenge-cards">
       <PxCard v-for="challenge in CHALLENGES" :key="challenge.id" class="challenge-card px-card--dark">
         <div class="challenge-card__head">
@@ -59,10 +63,11 @@ function start(challengeId: string): void {
         <p class="challenge-card__desc pixel-number">{{ t(challenge.descriptionKey) }}</p>
         <div class="challenge-card__meta pixel-number">
           {{ t('challenges.target') }}：{{ formatNumber(challenge.target) }} ·
-          {{ t('challenges.reward') }}：{{ challenge.rewardFlag }}
+          {{ t('challenges.reward') }}：{{ t(`challenges.${challenge.id}.reward`) }}
         </div>
         <PxButton
           v-if="statusOf(challenge.id) === 'active'"
+          :use-throttle="false"
           type="danger"
           @click="store.doStopChallenge()"
         >
@@ -70,6 +75,7 @@ function start(challengeId: string): void {
         </PxButton>
         <PxButton
           v-else
+          :use-throttle="false"
           type="primary"
           :disabled="statusOf(challenge.id) === 'completed'"
           @click="start(challenge.id)"
@@ -92,6 +98,7 @@ function start(challengeId: string): void {
       <div class="automator__head">
         <h2 class="pixel-number text-gold">{{ t('automator.script') }}</h2>
         <PxButton
+          :use-throttle="false"
           :type="state.automator.enabled ? 'success' : 'base'"
           @click="store.setAutomator(!state.automator.enabled)"
         >

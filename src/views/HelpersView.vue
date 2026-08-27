@@ -3,17 +3,35 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 
 import { PxButton, PxCard } from '@mmt817/pixel-ui'
-import { HELPER_TYPES, canAffordHelper, costOfHelper } from '../core'
+import { HELPER_TYPES, canAffordHelper, costOfHelper, isHelperUnlocked, type HelperType } from '../core'
 import { formatCash } from '../core/format'
 import { helperSpriteDataUrl } from '../components/helpers/helperSprites'
 import { useGameStore } from '../stores/gameStore'
+import { useSound } from '../composables/useSound'
 
 const store = useGameStore()
 const { state, uiVersion } = storeToRefs(store)
+const { playClick } = useSound()
 
 interface HelperRow {
   id: string; label: string; rate: string; body: string; head: string
-  count: number; costStr: string; affordable: boolean
+  count: number; costStr: string; affordable: boolean; unlocked: boolean; unlockHint: string
+}
+
+/** 生成助手的解锁条件文案（无解锁条件的助手返回空串）。 */
+function unlockHint(h: HelperType): string {
+  const goal = h.unlockGoal
+  if (goal === undefined) return ''
+  switch (goal.kind) {
+    case 'totalFlips':
+      return `累计抛币 ${goal.target.toLocaleString()} 解锁`
+    case 'totalEarned':
+      return `累计赚取 ${goal.target.toLocaleString()} 解锁`
+    case 'totalSkullTokensEarned':
+      return `累计 ${goal.target} 枚骷髅币解锁`
+    default:
+      return ''
+  }
 }
 
 const HELPER_META: Record<string, { body: string; head: string; label: string; rate: string }> = {
@@ -40,6 +58,8 @@ const rows = computed((): HelperRow[] => {
       count: state.value.helpers[h.id]?.count ?? 0,
       costStr: formatCash(costOfHelper(state.value, h.id)),
       affordable: canAffordHelper(state.value, h.id),
+      unlocked: isHelperUnlocked(state.value, h.id),
+      unlockHint: unlockHint(h),
     }
   })
 })
@@ -82,22 +102,24 @@ function hire(id: string): void { store.hireHelperAction(id, 1) }
         <div class="hc-info">
           <div class="hc-name pixel-number">{{ row.label }}</div>
           <div class="hc-rate pixel-number">{{ row.rate }} 翻/秒</div>
-          <div v-if="row.count > 0" class="hc-owned pixel-number">▶ 运行中</div>
+          <div v-if="!row.unlocked" class="hc-locked pixel-number">🔒 未解锁 · {{ row.unlockHint }}</div>
+          <div v-else-if="row.count > 0" class="hc-owned pixel-number">▶ 运行中</div>
         </div>
 
         <!-- 右：append —— 两个独立按钮 -->
         <template #append>
           <div class="hc-actions">
             <PxButton
+              :use-throttle="false"
               class="hc-btn"
               :type="row.affordable ? 'success' : 'base'"
-              :disabled="!row.affordable"
+              :disabled="!row.affordable || !row.unlocked"
               @click="hire(row.id)"
             >
               <span class="hc-btn-label">雇佣</span>
               <span class="hc-btn-cost">{{ row.costStr }}</span>
             </PxButton>
-            <PxButton type="warning" class="hc-btn">
+            <PxButton :use-throttle="false" type="warning" class="hc-btn" @click="playClick">
               <span class="hc-btn-label">升级</span>
               <span class="hc-btn-cost">Lv0</span>
             </PxButton>
@@ -156,7 +178,7 @@ function hire(id: string): void { store.hireHelperAction(id, 1) }
 }
 
 .hc-card--owned {
-  --px-border-color: #c03000 !important;
+  --px-border-color: #b8912b !important;
 }
 
 /* 左：像素画 Avatar */
@@ -204,6 +226,12 @@ function hire(id: string): void { store.hireHelperAction(id, 1) }
 .hc-owned {
   font-size: 16px;
   color: var(--positive);
+  font-weight: 700;
+}
+
+.hc-locked {
+  font-size: 16px;
+  color: var(--text-secondary);
   font-weight: 700;
 }
 

@@ -12,24 +12,32 @@ import { buyDimension } from './derivativeChain'
 /** 自动购买检查间隔（毫秒）。 */
 const AUTO_BUY_INTERVAL_MS = 1000
 
-/** 切换某个维度的自动购买开关，返回切换后的状态。 */
+/** 自动购买器是否已解锁（需机制级 flag `autobuyer`）。 */
+export function isAutobuyerUnlocked(state: GameState): boolean {
+  return state.unlockFlags.includes('autobuyer')
+}
+
+/** 切换某个维度的自动购买开关，返回切换后的状态（未解锁返回 null）。 */
 export function toggleAutobuyer(state: GameState, tier: number): boolean | null {
   const ab = state.autobuyers[tier - 1]
   if (ab === undefined) return null
+  if (!isAutobuyerUnlocked(state)) return null
   ab.enabled = !ab.enabled
   return ab.enabled
 }
 
-/** 显式设置某个维度的自动购买开关。 */
+/** 显式设置某个维度的自动购买开关。未解锁时禁止开启（仍允许关闭）。 */
 export function setAutobuyer(state: GameState, tier: number, enabled: boolean): boolean {
   const ab = state.autobuyers[tier - 1]
   if (ab === undefined) return false
+  if (enabled && !isAutobuyerUnlocked(state)) return false
   ab.enabled = enabled
   return true
 }
 
 /** 自动购买器 tick：检查每个启用的 autobuyer 是否到时间则尝试购买。 */
 export function tickAutobuyers(state: GameState, now: number): boolean {
+  if (!isAutobuyerUnlocked(state)) return false
   let purchased = false
   for (const ab of state.autobuyers) {
     if (!ab.enabled) continue

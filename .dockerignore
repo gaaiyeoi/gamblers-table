@@ -1,12 +1,16 @@
+# 构建上下文排除项（用于 Dockerfile.prod 生产镜像）
 node_modules
 dist
-dist-ssr
-*.log
 .git
 .gitignore
-.dockerignore
-.vscode
-.idea
+*.log
 .DS_Store
-docs
+README.md
 tests
+docs
+docker-compose*.yml
+Dockerfile
+Dockerfile.prod
+nginx.conf
+deploy.sh
+Caddyfile

@@ -8,6 +8,8 @@ let state: GameState
 
 beforeEach(() => {
   state = createDefaultGameState()
+  // 自动购买器为关卡第 5 关奖励，测试核心逻辑前先解锁。
+  state.unlockFlags.push('autobuyer')
 })
 
 describe('默认状态（自动购买开关）', () => {
@@ -24,7 +26,7 @@ describe('tickAutobuyers（自动购买器）', () => {
   it('关闭状态：钱再多也不自动购买', () => {
     state.cash = new Decimal(1e9)
     expect(tickAutobuyers(state, 1500)).toBe(false)
-    expect(state.dimensions[0].bought).toBe(0)
+    expect(state.dimensions[0].bought).toBe(1)
   })
 
   it('首次执行：未到间隔则不购买', () => {
@@ -32,7 +34,7 @@ describe('tickAutobuyers（自动购买器）', () => {
     setAutobuyer(state, 1, true)
     state.autobuyers[0]!.lastTick = 1000
     expect(tickAutobuyers(state, 1500)).toBe(false)
-    expect(state.dimensions[0].bought).toBe(0)
+    expect(state.dimensions[0].bought).toBe(1)
   })
 
   it('到间隔 + 现金充足：自动购买', () => {
@@ -40,7 +42,7 @@ describe('tickAutobuyers（自动购买器）', () => {
     setAutobuyer(state, 1, true)
     state.autobuyers[0]!.lastTick = 0
     expect(tickAutobuyers(state, 1500)).toBe(true)
-    expect(state.dimensions[0].bought).toBe(1)
+    expect(state.dimensions[0].bought).toBe(2)
   })
 
   it('到间隔 + 现金不足：不购买', () => {
@@ -48,7 +50,7 @@ describe('tickAutobuyers（自动购买器）', () => {
     setAutobuyer(state, 1, true)
     state.autobuyers[0]!.lastTick = 0
     expect(tickAutobuyers(state, 1500)).toBe(false)
-    expect(state.dimensions[0].bought).toBe(0)
+    expect(state.dimensions[0].bought).toBe(1)
   })
 
   it('enabled=false：跳过', () => {
@@ -56,7 +58,7 @@ describe('tickAutobuyers（自动购买器）', () => {
     setAutobuyer(state, 1, false)
     state.autobuyers[0]!.lastTick = 0
     expect(tickAutobuyers(state, 5000)).toBe(false)
-    expect(state.dimensions[0].bought).toBe(0)
+    expect(state.dimensions[0].bought).toBe(1)
   })
 
   it('只有开启的维度才会自动购买', () => {
@@ -66,7 +68,7 @@ describe('tickAutobuyers（自动购买器）', () => {
     state.autobuyers[0]!.lastTick = 0
     state.autobuyers[1]!.lastTick = 0
     expect(tickAutobuyers(state, 5000)).toBe(true)
-    expect(state.dimensions[0].bought).toBe(1)
+    expect(state.dimensions[0].bought).toBe(2)
     expect(state.dimensions[1].bought).toBe(0)
   })
 })
@@ -82,5 +84,16 @@ describe('toggleAutobuyer（开关切换）', () => {
   it('非法 tier 返回 null', () => {
     expect(toggleAutobuyer(state, 0)).toBeNull()
     expect(toggleAutobuyer(state, state.autobuyers.length + 1)).toBeNull()
+  })
+})
+
+describe('自动购买器门控（关卡第 5 关解锁）', () => {
+  it('未解锁时不可开启 / 不购买', () => {
+    const locked = createDefaultGameState()
+    locked.cash = new Decimal(1e9)
+    expect(toggleAutobuyer(locked, 1)).toBeNull()
+    expect(setAutobuyer(locked, 1, true)).toBe(false)
+    expect(tickAutobuyers(locked, 5000)).toBe(false)
+    expect(locked.dimensions[0].bought).toBe(1)
   })
 })

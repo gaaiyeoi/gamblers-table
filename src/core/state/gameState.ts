@@ -1,6 +1,6 @@
 import Decimal from 'break_infinity.js'
 
-import { D0 } from '../math'
+import { D0, D1 } from '../math'
 import { CURRENT_SCHEMA_VERSION } from './schema'
 
 /** 单个维度（硬币/生成器）状态。 */
@@ -70,6 +70,26 @@ export interface StatsState {
   totalFlips: number
   totalWins: number
   totalEarned: Decimal
+  /** 累计雇佣助手次数（跨转生保留）。 */
+  totalHelpersHired: number
+  /** 累计购买维度数量（跨转生保留）。 */
+  totalDimensionsBought: number
+  /** 累计获得骷髅代币数（跨转生保留，不随扭蛋消费扣减）。 */
+  totalSkullTokensEarned: number
+}
+
+/** 任务关卡（主线）状态。 */
+export interface LevelState {
+  /** 已完成的关卡数（0 表示尚未完成第 1 关，等于下一关待解锁序号 - 1）。 */
+  completed: number
+  /** 当前关已达成目标、等待玩家确认过关的关卡 id（null 表示无需确认）。 */
+  pendingLevelId: string | null
+  /** 玩家选择"暂缓"的当前关 id：暂缓后本关不再自动弹确认框，直到过关/转生。 */
+  dismissedLevelId: string | null
+  /** 永久点击收益倍率（累乘，跨转生保留）。 */
+  clickMult: Decimal
+  /** 永久全局收益倍率（累乘，跨转生保留）。 */
+  incomeMult: Decimal
 }
 
 /**
@@ -104,6 +124,8 @@ export interface GameState {
   automator: AutomatorState
   /** 统计。 */
   stats: StatsState
+  /** 任务关卡（主线）状态。 */
+  levels: LevelState
   /** 事件日志（最近 50 条）。 */
   eventLog: EventEntry[]
 }
@@ -115,9 +137,10 @@ export function createDefaultGameState(): GameState {
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     cash: D0,
-    dimensions: Array.from({ length: INITIAL_DIMENSION_COUNT }, () => ({
-      bought: 0,
-      amount: D0,
+    // 开局自带 1 枚铜币（D1），保证桌布上初始就有一枚可点击/翻转的硬币。
+    dimensions: Array.from({ length: INITIAL_DIMENSION_COUNT }, (_, i) => ({
+      bought: i === 0 ? 1 : 0,
+      amount: i === 0 ? D1 : D0,
     })),
     // 默认全部关闭：由玩家在硬币界面手动开启，避免"钱够就自动买"。
     autobuyers: Array.from({ length: INITIAL_DIMENSION_COUNT }, (_, i) => ({
@@ -153,6 +176,16 @@ export function createDefaultGameState(): GameState {
       totalFlips: 0,
       totalWins: 0,
       totalEarned: D0,
+      totalHelpersHired: 0,
+      totalDimensionsBought: 0,
+      totalSkullTokensEarned: 0,
+    },
+    levels: {
+      completed: 0,
+      pendingLevelId: null,
+      dismissedLevelId: null,
+      clickMult: D1,
+      incomeMult: D1,
     },
     eventLog: [],
   }

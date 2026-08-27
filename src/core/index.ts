@@ -6,6 +6,7 @@
 // 引擎
 export * from './engine/eventBus'
 export * from './engine/gameLoop'
+export * from './engine/spawnQueue'
 export * from './engine/timeManager'
 
 // 基础设施
@@ -26,6 +27,8 @@ export * from './data/gachaPool'
 export * from './data/prestigeTiers'
 export * from './data/talents'
 export * from './data/challenges'
+export * from './data/levels'
+export * from './data/upgrades'
 
 // 机制
 export * from './mechanics/derivativeChain'
@@ -36,4 +39,7 @@ export * from './mechanics/autobuyers'
 export * from './mechanics/prestige'
 export * from './mechanics/talentTree'
 export * from './mechanics/challenges'
+export * from './mechanics/levels'
 export * from './mechanics/automator'
+export * from './mechanics/melt'
+export * from './mechanics/upgrades'

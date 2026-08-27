@@ -1,0 +1,15 @@
+# 生产环境叠加配置：使用生产镜像（Nginx 静态托管 dist/）
+# 用法：docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: gamblers-table:prod
+    container_name: gamblers-table-app
+    ports:
+      # 对外暴露 8000，容器内部 Nginx 监听 8000
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped

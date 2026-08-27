@@ -3,7 +3,13 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 
 import { PxCard, PxProgress } from '@mmt817/pixel-ui'
-import { HELPER_TYPES, PRESTIGE_TIERS, dimensionProductionPerSecond, talentTotalMultiplier } from '../../core'
+import {
+  HELPER_TYPES,
+  PRESTIGE_TIERS,
+  dimensionProductionPerSecond,
+  talentTotalMultiplier,
+  totalFlipsPerSec,
+} from '../../core'
 import { formatCash } from '../../core/format'
 import { useGameStore } from '../../stores/gameStore'
 
@@ -13,15 +19,21 @@ const { state, uiVersion } = storeToRefs(store)
 const cash = computed(() => { void uiVersion.value; return formatCash(state.value.cash) })
 const perSec = computed(() => { void uiVersion.value; return formatCash(dimensionProductionPerSecond(state.value, 1)) })
 const multiplier = computed(() => { void uiVersion.value; return `×${talentTotalMultiplier(state.value).toFixed(1)}` })
-const skulls = computed(() => { void uiVersion.value; return `$${state.value.skullTokens.toLocaleString()}` })
+const skulls = computed(() => { void uiVersion.value; return `☠${state.value.skullTokens.toLocaleString()}` })
 const totalHelpers = computed(() => { void uiVersion.value; return HELPER_TYPES.reduce((s, h) => s + (state.value.helpers[h.id]?.count ?? 0), 0) })
+const coinsTotal = computed(() => { void uiVersion.value; return state.value.dimensions.reduce((sum, d) => sum + d.bought, 0) })
+const flipsPerSec = computed(() => { void uiVersion.value; return totalFlipsPerSec(state.value).toFixed(1) })
 const totalFlips = computed(() => { void uiVersion.value; return state.value.stats.totalFlips })
 const totalWins = computed(() => { void uiVersion.value; return state.value.stats.totalWins })
 const winRate = computed(() => totalFlips.value === 0 ? '0%' : `${((totalWins.value / totalFlips.value) * 100).toFixed(0)}%`)
 const totalEarned = computed(() => { void uiVersion.value; return formatCash(state.value.stats.totalEarned) })
+const totalHelpersHired = computed(() => { void uiVersion.value; return state.value.stats.totalHelpersHired })
+const totalDimensionsBought = computed(() => { void uiVersion.value; return state.value.stats.totalDimensionsBought })
+const totalSkullTokensEarned = computed(() => { void uiVersion.value; return state.value.stats.totalSkullTokensEarned })
 
 const tier1 = PRESTIGE_TIERS[0]!
 const round = computed(() => state.value.prestige.tier)
+const thresholdText = computed(() => formatCash(tier1.threshold))
 const progressPct = computed(() => { void uiVersion.value; return Math.min(100, state.value.cash.div(tier1.threshold).mul(100).toNumber()) })
 
 const helperSummary = computed(() => {
@@ -39,7 +51,7 @@ const HELPER_NAMES: Record<string, string> = {
 }
 
 const HELPER_COLORS: Record<string, string> = {
-  novice: '#c08000', apprentice: '#c03000', journeyman: '#6b3000',
+  novice: '#c08000', apprentice: '#d97706', journeyman: '#6b3000',
   expert: '#5b21b6', master: '#0369a1', grandmaster: '#991b1b',
   legend: '#806000', mythic: '#9d174d',
 }
@@ -53,7 +65,7 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
     <PxCard round class="rsb-block">
       <template #header><p class="title">当局游戏</p></template>
       <div class="rsb-progress-text pixel-number">
-        第 {{ round }} 关 · {{ progressPct.toFixed(0) }}%
+        第 {{ round }} 关 · {{ cash }} / {{ thresholdText }} ({{ progressPct.toFixed(0) }}%)
       </div>
       <PxProgress
         class="rsb-progress-bar"
@@ -73,10 +85,16 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
           <span>倍率</span><span>{{ multiplier }}</span>
         </div>
         <div class="rsb-kv pixel-number">
+          <span>硬币</span><span>{{ coinsTotal }}</span>
+        </div>
+        <div class="rsb-kv pixel-number">
           <span>助手</span><span>{{ totalHelpers }}</span>
         </div>
         <div class="rsb-kv pixel-number">
-          <span>骷髅</span>
+          <span>每秒翻转</span><span>{{ flipsPerSec }} flips/s</span>
+        </div>
+        <div class="rsb-kv pixel-number">
+          <span>骷髅币</span>
           <span class="rsb-skull">{{ skulls }}</span>
         </div>
         <div class="rsb-kv pixel-number">
@@ -105,9 +123,6 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
       <template #header><p class="title">详细统计</p></template>
       <div class="rsb-kv-list">
         <div class="rsb-kv pixel-number">
-          <span>每秒收入</span><span>{{ perSec }}</span>
-        </div>
-        <div class="rsb-kv pixel-number">
           <span>累计翻转</span><span>{{ totalFlips }}</span>
         </div>
         <div class="rsb-kv pixel-number">
@@ -115,7 +130,13 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
           <span :class="{ 'text-pos': totalWins > 0 }">{{ winRate }}</span>
         </div>
         <div class="rsb-kv pixel-number">
-          <span>今日收入</span><span>{{ totalEarned }}</span>
+          <span>累计雇佣</span><span>{{ totalHelpersHired }}</span>
+        </div>
+        <div class="rsb-kv pixel-number">
+          <span>累计硬币</span><span>{{ totalDimensionsBought }}</span>
+        </div>
+        <div class="rsb-kv pixel-number">
+          <span>累计骷髅币</span><span>{{ totalSkullTokensEarned }}</span>
         </div>
       </div>
     </PxCard>
@@ -140,7 +161,7 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
 
 <style scoped>
 .rsb {
-  width: 230px;
+  width: 320px;
   flex-shrink: 0;
   background: var(--app-bg);
   border-left: 4px solid #212121;
@@ -158,7 +179,7 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
 /* PxCard 头标题（对应 NES with-title） */
 .rsb-block .title {
   margin: 0;
-  color: #c03000;
+  color: #b8912b;
   font-size: 16px;
   font-weight: 700;
 }
@@ -229,5 +250,5 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
 .rsb-event-row:last-child { border-bottom: none; }
 
 .rsb-event-time { color: var(--text-dim); flex-shrink: 0; }
-.rsb-event-msg  { color: #c03000; font-weight: 600; }
+.rsb-event-msg  { color: #b8912b; font-weight: 600; }
 </style>

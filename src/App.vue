@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
 
 import { useGameLoop } from './composables/useGameLoop'
 import TopBar from './components/layout/TopBar.vue'
@@ -7,21 +7,19 @@ import LeftSidebar from './components/layout/LeftSidebar.vue'
 import RightSidebar from './components/layout/RightSidebar.vue'
 import GameView from './views/GameView.vue'
 import AscensionView from './views/AscensionView.vue'
-import ChallengesView from './views/ChallengesView.vue'
+import LevelsView from './views/LevelsView.vue'
 import GachaModal from './components/GachaModal.vue'
+import SettingsModal from './components/layout/SettingsModal.vue'
+import ToastContainer from './components/layout/ToastContainer.vue'
+import { useUiStore, type CenterPanel } from './stores/uiStore'
 
 useGameLoop()
 
-export type CenterPanel = 'table' | 'talent' | 'challenges' | 'gacha'
-const activePanel = ref<CenterPanel>('table')
-const gachaOpen = ref(false)
+const ui = useUiStore()
+const { activePanel, gachaOpen, settingsOpen } = storeToRefs(ui)
 
 function onNav(panel: CenterPanel): void {
-  if (panel === 'gacha') {
-    gachaOpen.value = true
-    return
-  }
-  activePanel.value = panel
+  ui.navigate(panel)
 }
 </script>
 
@@ -33,12 +31,14 @@ function onNav(panel: CenterPanel): void {
       <main class="app-center">
         <GameView v-if="activePanel === 'table'" />
         <AscensionView v-else-if="activePanel === 'talent'" />
-        <ChallengesView v-else />
+        <LevelsView v-else />
       </main>
       <RightSidebar />
     </div>
   </div>
-  <GachaModal v-if="gachaOpen" @close="gachaOpen = false" />
+  <GachaModal v-if="gachaOpen" @close="ui.gachaOpen = false" />
+  <SettingsModal v-if="settingsOpen" />
+  <ToastContainer />
 </template>
 
 <style scoped>

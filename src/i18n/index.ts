@@ -5,7 +5,7 @@ const zh = {
     title: '硬币翻转',
     cash: '现金',
     perSec: '每秒产出',
-    skullTokens: '骷髅代币',
+    skullTokens: '骷髅币',
     skillTree: '天赋树',
     settings: '设置',
     stats: '统计',
@@ -16,7 +16,7 @@ const zh = {
     table: '主游戏',
     helpers: '助手',
     ascension: '转生',
-    challenges: '挑战',
+    challenges: '任务关卡',
   },
   coins: {
     copper: '铜币',
@@ -27,6 +27,12 @@ const zh = {
     ruby: '红宝石币',
     emerald: '祖母绿币',
     obsidian: '黑曜石币',
+    locked: '未解锁',
+    unlock: {
+      totalEarned: '累计赚取 {n} 解锁',
+      totalFlips: '累计抛币 {n} 解锁',
+      totalSkullTokensEarned: '累计获得骷髅币 {n} 解锁',
+    },
   },
   table: {
     items: '物品',
@@ -67,10 +73,10 @@ const zh = {
     rainbow: '彩虹帽',
   },
   gacha: {
-    pull: '抽卡（1 骷髅代币）',
-    skullTokensShort: '骷髅',
+    pull: '抽卡（1 骷髅币）',
+    skullTokensShort: '骷髅币',
     result: '抽中',
-    notEnoughSkulls: '骷髅代币不足',
+    notEnoughSkulls: '骷髅币不足',
     collection: '收藏',
     noCollection: '还没有收集任何帽子，去抽卡吧',
   },
@@ -84,7 +90,7 @@ const zh = {
     preview: '预览',
     threshold: '阈值',
     reputation: '名声点',
-    resetHint: '转生会清空现金、维度产出与助手，但保留升级、收藏与高阶通货。',
+    resetHint: '重生会清空现金、维度产出与助手，并把关卡进度刷回第 1 关；但保留升级、收藏、高阶通货与关卡"永生加成"。',
   },
   talents: {
     reset: '无损重置',
@@ -119,14 +125,51 @@ const zh = {
     evenOnly: {
       name: '偶数者',
       description: '禁封奇数维度（D1/D3/D5/D7），只能使用偶数维度生产。',
+      reward: '批量购买',
     },
     reverseFlow: {
       name: '逆流',
       description: '购买低阶维度时，会消耗高阶维度的数量（反向扣减）。',
+      reward: '高级自动购买',
     },
     darkMatter: {
       name: '暗物质',
       description: '暗物质（对抗资源）持续增长，超过现金即挑战失败。',
+      reward: '挑战切换',
+    },
+  },
+  levels: {
+    title: '任务关卡',
+    advancedTitle: '进阶挑战',
+    progress: '当前进度',
+    completed: '已完成',
+    inProgress: '进行中',
+    locked: '未解锁',
+    level: '第 {n} 关',
+    goal: '目标',
+    reward: '奖励',
+    confirmTitle: '第 {n} 关已达成',
+    confirmHint: '是否过关进入下一关？过关将开启对应下一关的新一局。',
+    confirmYes: '过关',
+    confirmNo: '暂缓',
+    goals: {
+      totalFlips: '累计抛币',
+      totalEarned: '累计赚取',
+      cash: '现金达到',
+      dimensionsBought: '累计购买维度',
+      helpersHired: '累计雇佣助手',
+      skullTokens: '骷髅币',
+    },
+    rewards: {
+      clickMult: '点击收益',
+      incomeMult: '全局收益',
+      flag: '解锁',
+    },
+    flags: {
+      bulkBuy: '批量购买',
+      autobuyer: '自动购买器',
+      apprentice: '学徒助手',
+      'autobuyer.conditions': '高级自动购买',
     },
   },
   automator: {
@@ -136,6 +179,41 @@ const zh = {
     placeholder: 'if cash >= 1e6 then prestige 1\nif reputation >= 5 then start challenge darkMatter',
     error: '脚本错误，已停用自动化',
   },
+  upgrades: {
+    title: '当局升级',
+    hint: '当局升级用现金购买，转生后清空，只在本局生效。',
+    buy: '购买',
+    maxed: '已满级',
+    perLevel: '每级',
+    quickFlip: {
+      name: '快速翻转',
+      desc: '硬币翻转动画更快。',
+    },
+    lightFootsteps: {
+      name: '脚步轻快',
+      desc: '助手走路速度 +22px/s 每级。',
+    },
+    touchOfMidas: {
+      name: '点金大手',
+      desc: '一次点击可翻动周围多枚硬币。',
+    },
+    silverGlide: {
+      name: '银币滑行',
+      desc: '鼠标悬停银币自动翻转。',
+    },
+    handOfMidas: {
+      name: '点金之手',
+      desc: '鼠标悬停金币自动翻转。',
+    },
+    luckyClover: {
+      name: '幸运四叶草',
+      desc: '$ 面概率 +3% 每级（基础 50%）。',
+    },
+    preferHigherCoins: {
+      name: '优先高级币',
+      desc: '助手优先把握更高档硬币（钻石>铂金>黄金>白银>铜）。',
+    },
+  },
 }
 
 const en: typeof zh = {
@@ -143,7 +221,7 @@ const en: typeof zh = {
     title: 'Coin Flip',
     cash: 'Cash',
     perSec: 'Per Second',
-    skullTokens: 'Skull Tokens',
+    skullTokens: 'Skull Coins',
     skillTree: 'Skill Tree',
     settings: 'Settings',
     stats: 'Stats',
@@ -154,7 +232,7 @@ const en: typeof zh = {
     table: 'Table',
     helpers: 'Helpers',
     ascension: 'Ascension',
-    challenges: 'Challenges',
+    challenges: 'Levels',
   },
   coins: {
     copper: 'Copper Coin',
@@ -165,6 +243,12 @@ const en: typeof zh = {
     ruby: 'Ruby Coin',
     emerald: 'Emerald Coin',
     obsidian: 'Obsidian Coin',
+    locked: 'Locked',
+    unlock: {
+      totalEarned: 'Unlock: earn {n} total',
+      totalFlips: 'Unlock: {n} total flips',
+      totalSkullTokensEarned: 'Unlock: {n} skull coins earned',
+    },
   },
   table: {
     items: 'Items',
@@ -205,10 +289,10 @@ const en: typeof zh = {
     rainbow: 'Rainbow Hat',
   },
   gacha: {
-    pull: 'Pull (1 Skull Token)',
-    skullTokensShort: 'Skull',
+    pull: 'Pull (1 Skull Coin)',
+    skullTokensShort: 'Skull Coin',
     result: 'Got',
-    notEnoughSkulls: 'Not enough Skull Tokens',
+    notEnoughSkulls: 'Not enough Skull Coins',
     collection: 'Collection',
     noCollection: 'No hats collected yet. Go pull!',
   },
@@ -222,7 +306,7 @@ const en: typeof zh = {
     preview: 'Preview',
     threshold: 'Threshold',
     reputation: 'Reputation',
-    resetHint: 'Resetting clears cash, dimension output and helpers, but keeps upgrades, collection and higher currencies.',
+    resetHint: 'Rebirth clears cash, dimension output and helpers, and resets level progress to level 1; but keeps upgrades, collection, higher currencies and permanent level bonuses.',
   },
   talents: {
     reset: 'Free Reset',
@@ -257,14 +341,51 @@ const en: typeof zh = {
     evenOnly: {
       name: 'Even Only',
       description: 'Ban odd dimensions (D1/D3/D5/D7); only even dimensions produce.',
+      reward: 'Bulk Buy',
     },
     reverseFlow: {
       name: 'Reverse Flow',
       description: 'Buying low-tier dimensions consumes higher-tier amounts.',
+      reward: 'Advanced Autobuyer',
     },
     darkMatter: {
       name: 'Dark Matter',
       description: 'Dark matter (opposition) grows over time; exceeding cash fails the challenge.',
+      reward: 'Challenge Switching',
+    },
+  },
+  levels: {
+    title: 'Levels',
+    advancedTitle: 'Advanced Challenges',
+    progress: 'Progress',
+    completed: 'Completed',
+    inProgress: 'In Progress',
+    locked: 'Locked',
+    level: 'Level {n}',
+    goal: 'Goal',
+    reward: 'Reward',
+    confirmTitle: 'Level {n} reached',
+    confirmHint: 'Advance to the next level? Doing so starts a new run for that level.',
+    confirmYes: 'Advance',
+    confirmNo: 'Later',
+    goals: {
+      totalFlips: 'Total flips',
+      totalEarned: 'Total earned',
+      cash: 'Reach cash',
+      dimensionsBought: 'Total dimensions bought',
+      helpersHired: 'Total helpers hired',
+      skullTokens: 'Skull coins',
+    },
+    rewards: {
+      clickMult: 'Click gain',
+      incomeMult: 'Income gain',
+      flag: 'Unlock',
+    },
+    flags: {
+      bulkBuy: 'Bulk Buy',
+      autobuyer: 'Autobuyer',
+      apprentice: 'Apprentice Helper',
+      'autobuyer.conditions': 'Advanced Autobuyer',
     },
   },
   automator: {
@@ -273,6 +394,41 @@ const en: typeof zh = {
     script: 'Script',
     placeholder: 'if cash >= 1e6 then prestige 1\nif reputation >= 5 then start challenge darkMatter',
     error: 'Script error, automator disabled',
+  },
+  upgrades: {
+    title: 'Run Upgrades',
+    hint: 'Run upgrades cost cash and reset on rebirth; they only last this run.',
+    buy: 'Buy',
+    maxed: 'Maxed',
+    perLevel: 'per level',
+    quickFlip: {
+      name: 'Quick Flip',
+      desc: 'Coin flip animation is faster.',
+    },
+    lightFootsteps: {
+      name: 'Light Footsteps',
+      desc: 'Helper walk speed +22px/s per level.',
+    },
+    touchOfMidas: {
+      name: 'Touch of Midas',
+      desc: 'One click flips several coins around.',
+    },
+    silverGlide: {
+      name: 'Silver Coin Glide',
+      desc: 'Hovering a silver coin auto-flips it.',
+    },
+    handOfMidas: {
+      name: 'Hand of Midas',
+      desc: 'Hovering a gold coin auto-flips it.',
+    },
+    luckyClover: {
+      name: 'Lucky Clover',
+      desc: '$ chance +3% per level (base 50%).',
+    },
+    preferHigherCoins: {
+      name: 'Prefer Higher Coins',
+      desc: 'Helpers prefer higher-tier coins (Diamond>Platinum>Gold>Silver>Copper).',
+    },
   },
 }
 

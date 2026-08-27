@@ -154,7 +154,7 @@ const skullTokens = computed(() => {
 /* 赌台主区域（吸血鬼幸存者画风：厚重木框 + 细腻毛毡） */
 .table-view__carpet {
   flex: 1;
-  background-color: #17541f;
+  background-color: #1f5130;
   background-image:
     radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.045) 1px, transparent 1.4px),
     radial-gradient(circle at 70% 65%, rgba(0, 0, 0, 0.09) 1px, transparent 1.4px),
@@ -258,7 +258,7 @@ const skullTokens = computed(() => {
 .carpet-hud {
   display: flex;
   gap: 16px;
-  color: #a0e0a0;
+  color: #ecdcc0;
   font-size: 16px;
   background: rgba(0, 0, 0, 0.35);
   border-bottom: 2px solid rgba(255, 215, 0, 0.3);

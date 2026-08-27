@@ -46,7 +46,7 @@ function hatColor(hatId: string): string {
       <PxCard class="gacha px-card--dark">
         <div class="gacha__header">
           <h2 class="gacha__title pixel-number text-gold">{{ t('table.gacha') }}</h2>
-          <PxButton type="warning" aria-label="close" @click="emit('close')">
+          <PxButton :use-throttle="false" type="warning" aria-label="close" @click="emit('close')">
             <X :size="14" />
           </PxButton>
         </div>
@@ -56,7 +56,7 @@ function hatColor(hatId: string): string {
           <span class="gacha__skull pixel-number">{{ skullTokens }}</span>
         </PxCard>
 
-        <PxButton type="primary" class="gacha__pull" @click="pull">
+        <PxButton :use-throttle="false" type="primary" class="gacha__pull" @click="pull">
           {{ t('gacha.pull') }}
         </PxButton>
 

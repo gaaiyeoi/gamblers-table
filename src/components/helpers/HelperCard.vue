@@ -46,6 +46,7 @@ function hire(): void {
       </div>
     </div>
     <PxButton
+      :use-throttle="false"
       :type="affordable ? 'success' : 'base'"
       :disabled="!affordable"
       @click="hire"

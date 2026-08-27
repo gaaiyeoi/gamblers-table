@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * 赌台上的像素硬币精灵（8-bit 方块风格）：
- * - 像素方块硬币，无圆角无渐变
- * - 点击触发像素翻转动画 + 飘出 +$N 浮字
- * - 骷髅面概率 50%：显示骷髅像素脸
+ * 赌台上的圆形金币精灵：
+ * - 金属渐变圆形硬币，深色外缘 + 亮色内圈刻线
+ * - 点击触发翻转动画 + 飘出 +$N 浮字
+ * - 骷髅面概率 50%：显示紫色骷髅面
  */
 
 import { onBeforeUnmount, onMounted, ref } from 'vue'
@@ -93,7 +93,7 @@ function onCoinClick(e: MouseEvent): void {
     {{ f.text }}
   </div>
 
-  <!-- 像素方块硬币 -->
+  <!-- 圆形金币 -->
   <div
     class="coin-sprite"
     :class="{ 'is-flipping': isFlipping, 'is-skull': showSkull }"
@@ -120,18 +120,23 @@ function onCoinClick(e: MouseEvent): void {
 </template>
 
 <style scoped>
-/* ── 像素方块硬币（无圆角，无渐变） ── */
+/* ── 圆形金币（金属渐变面 + 深色外缘 + 亮色内圈刻线） ── */
 .coin-sprite {
   position: absolute;
   width: 24px;
   height: 24px;
-  background: var(--coin-color, #ffd700);
-  /* 4px 像素硬边框 */
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--coin-color, #ffd700) 70%, #fff) 0%,
+      var(--coin-color, #ffd700) 55%,
+      color-mix(in srgb, var(--coin-color, #ffd700) 40%, #000) 100%);
+  border-radius: 50%;
+  /* 深色外缘 */
   border: 3px solid color-mix(in srgb, var(--coin-color, #ffd700) 30%, #000);
-  /* 像素立体阴影：右下暗，左上亮 */
+  /* 内圈亮环 + 右下暗角 + 投影 */
   box-shadow:
-    inset -4px -4px 0 color-mix(in srgb, var(--coin-color, #ffd700) 40%, #000),
-    inset  4px  4px 0 color-mix(in srgb, var(--coin-color, #ffd700) 70%, #fff),
+    inset 0 0 0 3px color-mix(in srgb, var(--coin-color, #ffd700) 78%, #fff),
+    inset -5px -5px 0 color-mix(in srgb, var(--coin-color, #ffd700) 45%, #000),
     4px 4px 0 rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
@@ -144,8 +149,8 @@ function onCoinClick(e: MouseEvent): void {
 
 .coin-sprite:hover {
   box-shadow:
-    inset -4px -4px 0 color-mix(in srgb, var(--coin-color, #ffd700) 40%, #000),
-    inset  4px  4px 0 color-mix(in srgb, var(--coin-color, #ffd700) 70%, #fff),
+    inset 0 0 0 3px color-mix(in srgb, var(--coin-color, #ffd700) 78%, #fff),
+    inset -5px -5px 0 color-mix(in srgb, var(--coin-color, #ffd700) 45%, #000),
     4px 4px 0 rgba(0, 0, 0, 0.9),
     0 0 0 2px #fff;
 }
@@ -153,30 +158,32 @@ function onCoinClick(e: MouseEvent): void {
 .coin-sprite:active {
   transform: translate(2px, 2px);
   box-shadow:
-    inset -2px -2px 0 color-mix(in srgb, var(--coin-color, #ffd700) 40%, #000),
-    inset  2px  2px 0 color-mix(in srgb, var(--coin-color, #ffd700) 70%, #fff),
+    inset 0 0 0 2px color-mix(in srgb, var(--coin-color, #ffd700) 78%, #fff),
+    inset -3px -3px 0 color-mix(in srgb, var(--coin-color, #ffd700) 45%, #000),
     2px 2px 0 rgba(0, 0, 0, 0.7);
 }
 
-/* 像素高光：左上角 4×4 亮块 */
+/* 弧形高光：左上角亮点 */
 .coin-px-glare {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 6px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.55);
+  top: 3px;
+  left: 4px;
+  width: 7px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
   pointer-events: none;
 }
 
-/* 像素阴影：右下角 */
+/* 弧形阴影：右下角 */
 .coin-px-shadow {
   position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 6px;
-  height: 4px;
-  background: rgba(0, 0, 0, 0.3);
+  bottom: 3px;
+  right: 3px;
+  width: 7px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.28);
   pointer-events: none;
 }
 
@@ -184,13 +191,14 @@ function onCoinClick(e: MouseEvent): void {
   animation: coin-flip-px 0.4s steps(4, end);
 }
 
-/* 骷髅面：紫色像素硬币 */
+/* 骷髅面：紫色圆形硬币 */
 .coin-sprite.is-skull {
   background: #5b21b6;
   border-color: #2e1065;
+  border-radius: 50%;
   box-shadow:
-    inset -4px -4px 0 #1e0a50,
-    inset  4px  4px 0 #7c3aed,
+    inset 0 0 0 3px #7c3aed,
+    inset -5px -5px 0 #1e0a50,
     4px 4px 0 rgba(0, 0, 0, 0.7);
 }
 
@@ -198,6 +206,7 @@ function onCoinClick(e: MouseEvent): void {
   font-size: 16px;
   font-weight: 900;
   color: color-mix(in srgb, var(--coin-color, #ffd700) 20%, #000);
+  text-shadow: 1px 1px 0 color-mix(in srgb, var(--coin-color, #ffd700) 85%, #fff);
   line-height: 1;
   pointer-events: none;
   position: relative;
@@ -207,6 +216,7 @@ function onCoinClick(e: MouseEvent): void {
 .coin-sprite__skull {
   font-size: 16px;
   color: #e9d5ff;
+  text-shadow: 1px 1px 0 #2e1065;
   line-height: 1;
   pointer-events: none;
   position: relative;

@@ -1,14 +1,29 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { PxButton, PxCard } from '@mmt817/pixel-ui'
-import { canAffordDimension, COIN_TYPES, costOfDimension } from '../../core'
-import { formatCash } from '../../core/format'
+import {
+  canAffordDimension,
+  canMelt,
+  COIN_TYPES,
+  coinTypeOf,
+  costOfDimension,
+  hasFlag,
+  isCoinUnlocked,
+  MELT_RATIO,
+  type CoinUnlockGoal,
+} from '../../core'
+import { formatCash, formatNumber } from '../../core/format'
 import { useGameStore } from '../../stores/gameStore'
+import { useSound } from '../../composables/useSound'
+
+const { t } = useI18n()
 
 const store = useGameStore()
 const { state, uiVersion } = storeToRefs(store)
+const { playClick } = useSound()
 
 // 硬币颜色 + 中文名 + 详细说明
 const COIN_META: Record<string, { color: string; name: string; symbol: string }> = {
@@ -25,6 +40,21 @@ const COIN_META: Record<string, { color: string; name: string; symbol: string }>
 interface CoinRow {
   tier: number; id: string; name: string; color: string; symbol: string
   bought: number; cost1: string; cost10: string; affordable: boolean; base: string
+  unlocked: boolean; unlockHint: string
+  meltable: boolean; meltTo: string
+}
+
+/** 格式化解锁目标：金额用现金记法，数量用通用记法。 */
+function formatUnlockTarget(goal: CoinUnlockGoal): string {
+  return goal.kind === 'totalEarned'
+    ? formatCash(goal.target)
+    : formatNumber(goal.target)
+}
+
+/** 生成未解锁时的解锁条件提示（已解锁返回空串）。 */
+function unlockHintOf(goal: CoinUnlockGoal | undefined, unlocked: boolean): string {
+  if (unlocked || goal === undefined) return ''
+  return t(`coins.unlock.${goal.kind}`, { n: formatUnlockTarget(goal) })
 }
 
 const rows = computed((): CoinRow[] => {
@@ -33,6 +63,13 @@ const rows = computed((): CoinRow[] => {
     const tier = i + 1
     const dim = state.value.dimensions[i]!
     const meta = COIN_META[coin.icon] ?? { color: '#888', name: coin.id, symbol: '$' }
+    const coinDef = coinTypeOf(tier)
+    const unlocked = isCoinUnlocked(state.value, tier)
+    const meltable = canMelt(state.value, tier)
+    const meltTarget = COIN_TYPES[tier]
+    const meltTo = meltTarget
+      ? (COIN_META[meltTarget.icon]?.name ?? meltTarget.id)
+      : ''
     return {
       tier, id: coin.id,
       name: meta.name, color: meta.color, symbol: meta.symbol,
@@ -41,11 +78,32 @@ const rows = computed((): CoinRow[] => {
       cost10: formatCash(costOfDimension(state.value, tier, 10)),
       affordable: canAffordDimension(state.value, tier, 1),
       base: formatCash(coin.baseRate),
+      unlocked,
+      unlockHint: unlockHintOf(coinDef.unlockGoal, unlocked),
+      meltable,
+      meltTo,
     }
   })
 })
 
 function buy(tier: number, count: number): void { store.buyDim(tier, count) }
+
+/** 熔铸 1 组：MELT_RATIO 枚当前硬币 → 1 枚下一阶硬币。 */
+function melt(tier: number): void { store.meltDim(tier, 1) }
+
+/**
+ * 强化（占位）：当前强化机制尚未实现，点击仅给出提示并写入事件流，
+ * 待 core 强化机制落地后再替换为真实强化调用与文案。
+ */
+function enhance(row: CoinRow): void {
+  store.notify(`「${row.name}」强化功能开发中，敬请期待`, 'info')
+}
+
+/** 批量购买是否已解锁（关卡第 3 关奖励）。 */
+const bulkUnlocked = computed(() => {
+  void uiVersion.value
+  return hasFlag(state.value, 'bulkBuy')
+})
 </script>
 
 <template>
@@ -65,23 +123,32 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
         v-for="row in rows"
         :key="row.id"
         class="cc-card px-card--dark"
-        :class="{ 'cc-card--owned': row.bought > 0 }"
+        :class="{
+          'cc-card--owned': row.bought > 0,
+          'cc-card--locked': !row.unlocked,
+        }"
       >
         <!-- 已拥有徽章 -->
         <span v-if="row.bought > 0" class="cc-badge pixel-number">×{{ row.bought }}</span>
+        <!-- 未解锁徽章 -->
+        <span v-else-if="!row.unlocked" class="cc-lock pixel-number">🔒</span>
 
         <!-- 顶部：像素硬币图标 + 名称/说明 -->
         <div class="cc-top">
           <div
             class="cc-coin-icon"
+            :class="{ 'cc-coin-icon--locked': !row.unlocked }"
             :style="{ '--cc': row.color }"
           >
             <span class="cc-coin-sym pixel-number">{{ row.symbol }}</span>
           </div>
           <div class="cc-info">
             <div class="cc-name pixel-number" :style="{ color: row.color }">{{ row.name }}</div>
-            <div class="cc-sub pixel-number">
+            <div v-if="row.unlocked" class="cc-sub pixel-number">
               基础 {{ row.base }} · 强化 +25%/级 · Charge
+            </div>
+            <div v-else class="cc-sub pixel-number cc-sub--locked">
+              {{ row.unlockHint }}
             </div>
           </div>
         </div>
@@ -92,19 +159,36 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
         <!-- 底部按钮（全部在卡片内） -->
         <div class="cc-actions">
           <PxButton
+            :use-throttle="false"
             class="cc-btn"
-            :type="row.affordable ? 'success' : 'base'"
-            :disabled="!row.affordable"
+            :type="row.affordable && row.unlocked ? 'success' : 'base'"
+            :disabled="!row.affordable || !row.unlocked"
             @click="buy(row.tier, 1)"
           >
-            <span class="cc-btn-label">购买</span>
-            <span class="cc-btn-cost">{{ row.cost1 }}</span>
+            <span v-if="row.unlocked" class="cc-btn-label">购买</span>
+            <span v-else class="cc-btn-label">{{ t('coins.locked') }}</span>
+            <span class="cc-btn-cost">{{ row.unlocked ? row.cost1 : row.unlockHint }}</span>
           </PxButton>
-          <PxButton class="cc-btn" @click="buy(row.tier, 10)">
+          <PxButton
+            v-if="bulkUnlocked && row.unlocked"
+            :use-throttle="false"
+            class="cc-btn"
+            @click="buy(row.tier, 10)"
+          >
             <span class="cc-btn-label">×10</span>
             <span class="cc-btn-cost">{{ row.cost10 }}</span>
           </PxButton>
-          <PxButton type="warning" class="cc-btn">
+          <PxButton
+            v-if="row.meltable"
+            :use-throttle="false"
+            color="#a78bfa"
+            class="cc-btn"
+            @click="melt(row.tier)"
+          >
+            <span class="cc-btn-label">熔铸 ×{{ MELT_RATIO }}</span>
+            <span class="cc-btn-cost">→ {{ row.meltTo }}</span>
+          </PxButton>
+          <PxButton :use-throttle="false" type="warning" class="cc-btn" @click="enhance(row)">
             <span class="cc-btn-label">强化</span>
             <span class="cc-btn-cost">Lv0</span>
           </PxButton>
@@ -174,7 +258,7 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
 }
 
 .cc-card--owned {
-  --px-border-color: #d4a017 !important;
+  --px-border-color: #b8912b !important;
   box-shadow:
     inset -4px -4px rgba(0,0,0,0.6),
     inset  4px  4px rgba(255,255,255,0.04),
@@ -193,6 +277,31 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
   box-shadow: inset -2px -2px #c8c0a8, inset 2px 2px #fff;
 }
 
+/* 未解锁徽章（锁） */
+.cc-lock {
+  position: absolute;
+  top: 8px; right: 8px;
+  font-size: 18px;
+  line-height: 1;
+  filter: grayscale(0.4);
+}
+
+/* 未解锁卡片：降低饱和度与对比，制造"待解锁"观感 */
+.cc-card--locked {
+  --px-bg-color: #2b2b33 !important;
+  filter: saturate(0.55) brightness(0.92);
+}
+
+/* 未解锁图标：去色处理 */
+.cc-coin-icon--locked {
+  filter: grayscale(0.85);
+}
+
+/* 未解锁说明文字：暖灰提示色 */
+.cc-sub--locked {
+  color: #9aa3b5;
+}
+
 /* 顶部布局 */
 .cc-top {
   display: flex;
@@ -205,8 +314,8 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
 .cc-coin-icon {
   position: relative;
   width: 40px; height: 40px;
-  background: var(--cc, #d4a017);
-  border: 3px solid color-mix(in srgb, var(--cc, #d4a017) 40%, #000);
+  background: var(--cc, #b8912b);
+  border: 3px solid color-mix(in srgb, var(--cc, #b8912b) 40%, #000);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -214,8 +323,8 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
   image-rendering: pixelated;
   /* 像素立体阴影：左上亮 / 右下暗 + 外阴影 */
   box-shadow:
-    inset -6px -6px 0 color-mix(in srgb, var(--cc, #d4a017) 35%, #000),
-    inset  6px  6px 0 color-mix(in srgb, var(--cc, #d4a017) 60%, #fff),
+    inset -6px -6px 0 color-mix(in srgb, var(--cc, #b8912b) 35%, #000),
+    inset  6px  6px 0 color-mix(in srgb, var(--cc, #b8912b) 60%, #fff),
     4px 4px 0 rgba(0, 0, 0, 0.8);
 }
 
@@ -243,7 +352,7 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
 .cc-coin-sym {
   font-size: 18px;
   font-weight: 900;
-  color: color-mix(in srgb, var(--cc, #d4a017) 15%, #000);
+  color: color-mix(in srgb, var(--cc, #b8912b) 15%, #000);
   position: relative;
   z-index: 2;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.45);
