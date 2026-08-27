@@ -6,9 +6,13 @@ import { flipCoin } from '../src/core/mechanics/coins'
 import {
   buyDimension,
   canAffordDimension,
+  canAffordEnhancement,
   costOfDimension,
+  costOfEnhancement,
   dimensionMultiplier,
   dimensionProductionPerSecond,
+  enhanceDimension,
+  enhanceLevelOf,
   tickDerivativeChain,
 } from '../src/core/mechanics/derivativeChain'
 import { createDefaultGameState, type GameState } from '../src/core/state/gameState'
@@ -68,6 +72,41 @@ describe('dimensionMultiplier（阶梯翻倍）', () => {
     state.dimensions[0].bought = coin.doublingEvery
     const after = dimensionMultiplier(state, 1)
     expect(after.eq(base.mul(2))).toBe(true)
+  })
+})
+
+describe('硬币强化（enhanceDimension）', () => {
+  it('初始强化等级为 0，首级成本 = baseCost × 5（铜币 75$）', () => {
+    expect(enhanceLevelOf(state, 1)).toBe(0)
+    expect(costOfEnhancement(state, 1).eq(75)).toBe(true)
+  })
+
+  it('未解锁的硬币不可强化', () => {
+    // 银币默认未解锁
+    expect(canAffordEnhancement(state, 2)).toBe(false)
+    expect(enhanceDimension(state, 2)).toBe(false)
+  })
+
+  it('现金足够时强化成功：扣现金 + 等级 +1', () => {
+    state.cash = new Decimal(1000)
+    const cost = costOfEnhancement(state, 1)
+    expect(enhanceDimension(state, 1)).toBe(true)
+    expect(enhanceLevelOf(state, 1)).toBe(1)
+    expect(state.cash.toNumber()).toBe(1000 - cost.toNumber())
+  })
+
+  it('现金不足时强化失败，等级不变', () => {
+    state.cash = new Decimal(10)
+    expect(enhanceDimension(state, 1)).toBe(false)
+    expect(enhanceLevelOf(state, 1)).toBe(0)
+  })
+
+  it('强化提升该阶产出倍率（每级 +25%）', () => {
+    const base = dimensionMultiplier(state, 1)
+    state.cash = new Decimal(1000)
+    enhanceDimension(state, 1) // Lv1 → 倍率 ×1.25
+    const enhanced = dimensionMultiplier(state, 1)
+    expect(enhanced.eq(base.mul(1.25))).toBe(true)
   })
 })
 

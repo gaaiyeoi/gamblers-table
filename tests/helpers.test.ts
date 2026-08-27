@@ -5,12 +5,16 @@ import { helperTypeOf } from '../src/core/data/helperTypes'
 import { flipCoin } from '../src/core/mechanics/coins'
 import {
   canAffordHelper,
+  canAffordHelperUpgrade,
   checkHelperUnlocks,
   costOfHelper,
+  costOfHelperUpgrade,
+  helperLevel,
   hireHelper,
   isHelperUnlocked,
   tickHelpers,
   totalFlipsPerSec,
+  upgradeHelper,
 } from '../src/core/mechanics/helpers'
 import { createDefaultGameState, type GameState } from '../src/core/state/gameState'
 
@@ -92,6 +96,44 @@ describe('totalFlipsPerSec（总速率）', () => {
     const apprenticeRate = helperTypeOf('apprentice').flipsPerSec
     const expected = noviceRate.times(10).add(apprenticeRate)
     expect(totalFlipsPerSec(state).eq(expected)).toBe(true)
+  })
+})
+
+describe('助手升级（upgradeHelper）', () => {
+  it('未雇佣不可升级，初始等级为 0', () => {
+    expect(helperLevel(state, 'novice')).toBe(0)
+    expect(canAffordHelperUpgrade(state, 'novice')).toBe(false)
+    expect(upgradeHelper(state, 'novice')).toBe(false)
+  })
+
+  it('首级成本 = baseCost × 4（新手助手 20$）', () => {
+    expect(costOfHelperUpgrade(state, 'novice').eq(20)).toBe(true)
+  })
+
+  it('现金足够时升级成功：扣现金 + 等级 +1', () => {
+    state.cash = new Decimal(1e6)
+    hireHelper(state, 'novice', 1)
+    const cost = costOfHelperUpgrade(state, 'novice')
+    const before = state.cash
+    expect(upgradeHelper(state, 'novice')).toBe(true)
+    expect(helperLevel(state, 'novice')).toBe(1)
+    expect(state.cash.eq(before.sub(cost))).toBe(true)
+  })
+
+  it('现金不足时升级失败，等级不变', () => {
+    state.cash = new Decimal(10) // 低于首级升级 20$
+    hireHelper(state, 'novice', 1)
+    expect(upgradeHelper(state, 'novice')).toBe(false)
+    expect(helperLevel(state, 'novice')).toBe(0)
+  })
+
+  it('升级提升该助手总翻转速率（每级 +25%）', () => {
+    state.cash = new Decimal(1e6)
+    hireHelper(state, 'novice', 2) // 2 只 × 0.5 = 1 翻/秒
+    const base = totalFlipsPerSec(state)
+    expect(upgradeHelper(state, 'novice')).toBe(true) // Lv1 → 速率 ×1.25
+    const upgraded = totalFlipsPerSec(state)
+    expect(upgraded.eq(base.mul(1.25))).toBe(true)
   })
 })
 

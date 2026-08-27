@@ -70,4 +70,22 @@ describe('migrate', () => {
     expect(migrated.challenge).toBeDefined()
     expect(migrated.automator).toBeDefined()
   })
+
+  it('迁移 v9 补齐助手升级与硬币强化等级（旧档默认 0）', () => {
+    const state = createDefaultGameState()
+    state.schemaVersion = 8
+    state.helpers.novice = { count: 3, level: 0, hat: '' }
+    // 模拟旧档缺字段：删除增强相关字段
+    delete (state.dimensions[0] as Record<string, unknown>).enhanceLevel
+    delete (state.helpers.novice as Record<string, unknown>).level
+
+    const migrated = migrate(state)
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
+    expect(migrated.dimensions[0].enhanceLevel).toBe(0)
+    expect(migrated.helpers.novice.level).toBe(0)
+    // 已存在的等级不被覆盖
+    state.helpers.novice.level = 5
+    const migratedAgain = migrate(state)
+    expect(migratedAgain.helpers.novice.level).toBe(5)
+  })
 })

@@ -3,14 +3,17 @@ import { storeToRefs } from 'pinia'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { PxCard, PxProgress } from '@mmt817/pixel-ui'
+import { PxButton, PxCard, PxProgress } from '@mmt817/pixel-ui'
 import {
   autobuyerProgress,
   canAffordDimension,
+  canAffordEnhancement,
   canMelt,
   COIN_TYPES,
   coinTypeOf,
   costOfDimension,
+  costOfEnhancement,
+  enhanceLevelOf,
   hasFlag,
   isAutobuyerUnlocked,
   isCoinUnlocked,
@@ -45,6 +48,8 @@ interface CoinRow {
   bought: number; cost1: string; cost10: string; affordable: boolean; base: string
   unlocked: boolean; unlockHint: string
   meltable: boolean; meltTo: string
+  doublingEvery: number; enhanceBonusPct: number; enhanceLevel: number
+  enhanceCost: string; affordableEnhance: boolean
 }
 
 /** 格式化解锁目标：金额用现金记法，数量用通用记法。 */
@@ -73,6 +78,8 @@ const rows = computed((): CoinRow[] => {
     const meltTo = meltTarget
       ? (COIN_META[meltTarget.icon]?.name ?? meltTarget.id)
       : ''
+    const enhanceBonusPct = (coin.enhanceBonus ?? 0.25) * 100
+    const enhanceLevel = enhanceLevelOf(state.value, tier)
     return {
       tier, id: coin.id,
       name: meta.name, color: meta.color, symbol: meta.symbol,
@@ -85,6 +92,11 @@ const rows = computed((): CoinRow[] => {
       unlockHint: unlockHintOf(coinDef.unlockGoal, unlocked),
       meltable,
       meltTo,
+      doublingEvery: coin.doublingEvery,
+      enhanceBonusPct,
+      enhanceLevel,
+      enhanceCost: formatCash(costOfEnhancement(state.value, tier)),
+      affordableEnhance: canAffordEnhancement(state.value, tier),
     }
   })
 })
@@ -94,13 +106,8 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
 /** 熔铸 1 组：MELT_RATIO 枚当前硬币 → 1 枚下一阶硬币。 */
 function melt(tier: number): void { store.meltDim(tier, 1) }
 
-/**
- * 强化（占位）：当前强化机制尚未实现，点击仅给出提示并写入事件流，
- * 待 core 强化机制落地后再替换为真实强化调用与文案。
- */
-function enhance(row: CoinRow): void {
-  store.notify(`「${row.name}」强化功能开发中，敬请期待`, 'info')
-}
+/** 强化硬币：每级提升该阶产出倍率。 */
+function enhance(tier: number): void { store.enhanceDim(tier) }
 
 /** 批量购买是否已解锁（关卡第 3 关奖励）。 */
 const bulkUnlocked = computed(() => {
@@ -185,7 +192,7 @@ function autoProgress(tier: number): number {
           <div class="cc-info">
             <div class="cc-name pixel-number" :style="{ color: row.color }">{{ row.name }}</div>
             <div v-if="row.unlocked" class="cc-sub pixel-number">
-              基础 {{ row.base }} · 强化 +25%/级 · Charge
+              基础 {{ row.base }}/秒 · 每买 {{ row.doublingEvery }} 个翻倍 · 强化 +{{ row.enhanceBonusPct }}%/级
             </div>
             <div v-else class="cc-sub pixel-number cc-sub--locked">
               {{ row.unlockHint }}
@@ -225,10 +232,16 @@ function autoProgress(tier: number): number {
             <span class="cc-btn-label">熔铸 ×{{ MELT_RATIO }}</span>
             <span class="cc-btn-cost">→ {{ row.meltTo }}</span>
           </CooldownButton>
-          <CooldownButton type="warning" class="cc-btn" @click="enhance(row)">
+          <PxButton
+            :use-throttle="false"
+            type="warning"
+            class="cc-btn"
+            :disabled="!row.affordableEnhance || !row.unlocked"
+            @click="enhance(row.tier)"
+          >
             <span class="cc-btn-label">强化</span>
-            <span class="cc-btn-cost">Lv0</span>
-          </CooldownButton>
+            <span class="cc-btn-cost">Lv{{ row.enhanceLevel }} · {{ row.enhanceCost }}</span>
+          </PxButton>
         </div>
 
         <!-- AD 式自动购买：每个维度独立开关 + 1 秒冷却进度条（关卡 5 解锁） -->

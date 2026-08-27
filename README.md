@@ -226,6 +226,51 @@ Output is placed in `dist/`.
 
 ---
 
+## 🚀 Deployment（部署）
+
+### 本地开发（Docker + Vite HMR）
+
+```bash
+docker compose up -d --build app
+# 或直接
+npm run dev
+```
+
+访问 http://localhost:8000（固定端口，strictPort 防止漂移）。
+
+### 生产构建
+
+```bash
+npm run build        # 产物在 dist/
+```
+
+生产镜像采用多阶段构建（`Dockerfile.prod` + `nginx.conf`）：Stage 1 用 node:24 构建静态产物，Stage 2 用 Nginx 托管（SPA 路由回退 + 静态资源缓存）。
+
+### 一键部署（deploy.sh）
+
+```bash
+./deploy.sh                 # 默认推送当前分支到 origin/main
+./deploy.sh my-branch       # 指定分支
+```
+
+脚本流程：
+1. 本地 `npm run build` 验证可编译
+2. `git commit` + `git push` 到远程 main
+3. SSH 到服务器 `git reset --hard origin/main` 强同步并重建生产镜像
+4. 验证 `http://<host>:8000/` 返回 200
+
+可选环境变量：`SERVER_HOST` / `SERVER_USER` / `SERVER_DIR` / `REMOTE_BRANCH` / `SSH_PASS`（未配置 SSH 公钥时用 expect 自动输密码）。
+
+### 服务器生产配置
+
+- 生产镜像：`Dockerfile.prod`（nginx 静态托管，内部 8000）
+- 生产叠加配置：`docker-compose.prod.yml`（对外暴露 8000）
+- HTTPS 反代由 Caddy 承担（`Caddyfile`，80/443，自动申请证书）
+
+> ⚠️ 安全提示：本仓库**不包含**任何服务器/本机账号密码或私密 token。所有凭据通过 SSH 密钥或环境变量注入，请勿将 `.env`、`*.pem`、SSH 私钥、PAT token 等敏感文件提交到 git，也不要将 `SSH_PASS` 硬编码进脚本。
+
+---
+
 ## 🧰 Tech Stack
 
 | Layer | Library |

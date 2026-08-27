@@ -21,7 +21,7 @@ import CooldownButton from '../components/ui/CooldownButton.vue'
 
 const store = useGameStore()
 const { state, uiVersion } = storeToRefs(store)
-const { playClick } = useSound()
+useSound()
 
 interface HelperRow {
   id: string; label: string; rate: string; body: string; head: string
@@ -125,8 +125,14 @@ function upgrade(id: string): void { store.upgradeHelperAction(id) }
         <div class="hc-info">
           <div class="hc-name pixel-number">{{ row.label }}</div>
           <div class="hc-rate pixel-number">{{ row.rate }} 翻/秒</div>
+          <!-- 已雇佣：展示当前实际速率与升级加成，让"提升"一目了然 -->
+          <div v-if="row.unlocked && row.count > 0" class="hc-total pixel-number">
+            ×{{ row.count }} → {{ row.totalRateStr }} 翻/秒
+          </div>
           <div v-if="!row.unlocked" class="hc-locked pixel-number">🔒 未解锁 · {{ row.unlockHint }}</div>
-          <div v-else-if="row.count > 0" class="hc-owned pixel-number">▶ 运行中</div>
+          <div v-else-if="row.count > 0" class="hc-owned pixel-number">
+            ▶ 运行中 · Lv{{ row.level }} · 每级 +{{ row.bonusPct }}%
+          </div>
         </div>
 
         <!-- 右：append —— 两个独立按钮 -->
@@ -141,9 +147,14 @@ function upgrade(id: string): void { store.upgradeHelperAction(id) }
               <span class="hc-btn-label">雇佣</span>
               <span class="hc-btn-cost">{{ row.costStr }}</span>
             </CooldownButton>
-            <CooldownButton type="warning" class="hc-btn" @click="playClick">
+            <CooldownButton
+              type="warning"
+              class="hc-btn"
+              :disabled="!row.affordableUpgrade"
+              @click="upgrade(row.id)"
+            >
               <span class="hc-btn-label">升级</span>
-              <span class="hc-btn-cost">Lv0</span>
+              <span class="hc-btn-cost">Lv{{ row.level }} · {{ row.upgradeCost }}</span>
             </CooldownButton>
           </div>
         </template>
@@ -243,6 +254,12 @@ function upgrade(id: string): void { store.upgradeHelperAction(id) }
 .hc-rate {
   font-size: 16px;
   color: var(--text-secondary);
+}
+
+.hc-total {
+  font-size: 16px;
+  color: var(--positive);
+  font-weight: 700;
 }
 
 .hc-owned {

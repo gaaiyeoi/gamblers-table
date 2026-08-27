@@ -78,12 +78,15 @@ describe('prestigeReset（执行转生）', () => {
     expect(state.cash.eq(100)).toBe(true)
   })
 
-  it('helpers count 清零，帽子保留', () => {
+  it('helpers count 与升级等级清零，帽子保留；硬币强化等级清零', () => {
     state.cash = new Decimal(1e7)
     buyDimension(state, 1, 5)
-    state.helpers.novice = { count: 3, hat: 'hat_brown' }
+    state.dimensions[0].enhanceLevel = 3
+    state.helpers.novice = { count: 3, hat: 'hat_brown', level: 2 }
     prestigeReset(state, 1)
     expect(state.helpers.novice.count).toBe(0)
     expect(state.helpers.novice.hat).toBe('hat_brown')
+    expect(state.helpers.novice.level).toBe(0)
+    expect(state.dimensions[0].enhanceLevel).toBe(0)
   })
 })
