@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 部署脚本（含服务器地址/端口，不入库）
+deploy.sh
