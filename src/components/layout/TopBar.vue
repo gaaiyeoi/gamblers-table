@@ -1,22 +1,5 @@
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-import { computed } from 'vue'
-
-import { talentTotalMultiplier } from '../../core'
-import { formatCash } from '../../core/format'
-import { useGameStore } from '../../stores/gameStore'
-
-const store = useGameStore()
-const { state, uiVersion } = storeToRefs(store)
-
-const cash = computed(() => { void uiVersion.value; return formatCash(state.value.cash) })
-const multiplier = computed(() => { void uiVersion.value; return `×${talentTotalMultiplier(state.value).toFixed(1)}` })
-const skulls = computed(() => { void uiVersion.value; return state.value.skullTokens })
-const totalFlips = computed(() => { void uiVersion.value; return state.value.stats.totalFlips })
-const totalWins = computed(() => { void uiVersion.value; return state.value.stats.totalWins })
-const winRate = computed(() => totalFlips.value === 0 ? '+0.0%' : `+${((totalWins.value / totalFlips.value) * 100).toFixed(1)}%`)
-const headsCount = computed(() => totalWins.value)
-const tailsCount = computed(() => totalFlips.value - totalWins.value)
+import { PxButton } from '@mmt817/pixel-ui'
 </script>
 
 <template>
@@ -29,34 +12,10 @@ const tailsCount = computed(() => totalFlips.value - totalWins.value)
         <span class="logo-sub pixel-number">GAMBLERS TABLE</span>
       </div>
 
-      <!-- 数据徽章（nes-container 小框） -->
-      <div class="topbar__stats">
-        <div class="nes-container stat-chip">
-          <span class="stat-chip__lbl">家资</span>
-          <span class="stat-chip__val pixel-number text-gold">{{ cash }}</span>
-        </div>
-        <div class="nes-container stat-chip">
-          <span class="stat-chip__lbl">倍率</span>
-          <span class="stat-chip__val pixel-number">{{ multiplier }}</span>
-        </div>
-        <div class="nes-container stat-chip">
-          <span class="stat-chip__lbl">胜率</span>
-          <span class="stat-chip__val pixel-number" style="color:#209020">{{ winRate }}</span>
-        </div>
-        <div class="nes-container stat-chip">
-          <span class="stat-chip__lbl">骷髅</span>
-          <span class="stat-chip__val pixel-number" style="color:#6b21a8">☠{{ skulls }}</span>
-        </div>
-        <div class="nes-container stat-chip">
-          <span class="stat-chip__lbl">翻转</span>
-          <span class="stat-chip__val pixel-number">{{ headsCount }}正/{{ tailsCount }}反</span>
-        </div>
-      </div>
-
       <!-- 右侧操作 -->
       <div class="topbar__right">
-        <button class="nes-btn" type="button">▣</button>
-        <button class="nes-btn is-primary" type="button">≡ 菜单</button>
+        <PxButton>▣</PxButton>
+        <PxButton type="primary">≡ 菜单</PxButton>
       </div>
     </header>
   </div>
@@ -103,39 +62,6 @@ const tailsCount = computed(() => totalFlips.value - totalWins.value)
   font-size: 16px;
   letter-spacing: 1px;
   white-space: nowrap;
-}
-
-/* 数据徽章区 */
-.topbar__stats {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-  flex: 1;
-  flex-wrap: wrap;
-}
-
-/* nes-container 小数据块 */
-.stat-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 12px !important;
-  min-width: 72px;
-}
-
-.stat-chip__lbl {
-  font-size: 16px;
-  color: var(--text-dim);
-  margin-bottom: 3px;
-  font-family: 'Ark Pixel 16px Monospaced', monospace;
-}
-
-.stat-chip__val {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.2;
 }
 
 /* 右侧按钮 */

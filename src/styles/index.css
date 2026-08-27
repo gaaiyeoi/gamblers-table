@@ -1,5 +1,4 @@
-/* NES.css + Ark Pixel 16px 像素字体 */
-@import 'nes.css/css/nes.min.css';
+/* Pixel UI（@mmt817/pixel-ui）+ Ark Pixel 16px 像素字体 */
 
 /* Ark Pixel 16px —— 统一中文像素字体 */
 @font-face {
@@ -11,47 +10,70 @@
 }
 
 /* ══════════════════════════════════════════════
-   CSS 变量 —— 亮色 NES 主题
+   CSS 变量 —— 深蓝暗金主题
+   深海军蓝背景 + 暗金强调，复古赌场典雅风
    ══════════════════════════════════════════════ */
 :root {
-  /* 亮色背景（让 NES.css 原生白底黑边正常显示） */
-  --app-bg:            #e8e0d0;   /* 米黄色背景，复古感 */
-  --sidebar-bg:        #d4ccc0;
-  --panel-bg:          #f0ebe0;
+  /* 深蓝背景层级 */
+  --app-bg:            #0f1626;
+  --sidebar-bg:        #0c1321;
+  --panel-bg:          #1a2233;
+  --panel-bg-deep:     #141b2a;
 
-  --accent:            #c03000;   /* NES 复古红 */
-  --accent-hover:      #a02800;
-  --accent-dim:        rgba(192,48,0,.15);
-  --accent-text:       #fff;
+  --accent:            #d4a017;   /* 暗金 */
+  --accent-hover:      #e8b52a;
+  --accent-dim:        rgba(212,160,23,.15);
+  --accent-text:       #0f1626;
 
   --felt:              #1d6b2a;
   --felt-light:        #267a35;
   --felt-dark:         #124a1e;
-  --table-frame:       #5d3217;
+  --table-frame:       #0c1321;
 
-  /* 亮色文字 */
-  --text-primary:      #212121;
-  --text-secondary:    #555;
-  --text-dim:          #888;
-  --text-gold:         #c08000;
+  /* 米白文字（深蓝背景上保持可读） */
+  --text-primary:      #ecdcc0;
+  --text-secondary:    #b8b0a0;
+  --text-dim:          #8a8372;
+  --text-gold:         #e0b84c;
 
-  --positive:          #209020;
-  --negative:          #c03000;
-  --skull-color:       #6b21a8;
-  --gold:              #c08000;
-  --gold-dark:         #906000;
+  --positive:          #4caf50;
+  --negative:          #e24c3b;
+  --skull-color:       #c084fc;
+  --gold:              #d4a017;
+  --gold-dark:         #a07c0a;
 
   /* 兼容旧变量名 */
-  --table-bg:          #f0ebe0;
-  --table-bg-light:    #e8e0d0;
-  --wood:              #5d3217;
+  --table-bg:          #1a2233;
+  --table-bg-light:    #141b2a;
+  --wood:              #1a2233;
   --carpet-red:        #1d6b2a;
-  --text-main:         #212121;
-  --functional-green:  #209020;
-  --functional-red:    #c03000;
+  --text-main:         #ecdcc0;
+  --functional-green:  #4caf50;
+  --functional-red:    #e24c3b;
+
+  /* NES 风格像素边框用色（暗金勾边） */
+  --light-border:      #d4a017;
 
   font-family: 'Ark Pixel 16px Monospaced', 'Courier New', monospace;
   font-size: 16px;
+
+  /* ── Pixel UI 主题：字体（普通自定义属性，可继承） ── */
+  --px-font-family: 'Ark Pixel 16px Monospaced', 'Zpix', 'PS2P', monospace;
+  --px-font-size-standard: 16px;
+  --px-font-size-small: 16px;
+}
+
+/*
+   Pixel UI 的颜色变量通过 CSS Houdini @property 注册，且 inherits:false，
+   仅放在 :root 无法传递到组件元素，故对所有元素生效以覆盖默认配色。
+*/
+:root, * {
+  --px-color-base: #ecdcc0;
+  --px-color-primary: #d4a017;
+  --px-color-success: #4caf50;
+  --px-color-warning: #d4a017;
+  --px-color-danger: #e24c3b;
+  --px-color-sakura: #c084fc;
 }
 
 /* ══════════════════════════════════════════════
@@ -85,34 +107,134 @@ body {
 .text-neg     { color: var(--negative); }
 
 /* ══════════════════════════════════════════════
-   NES.css 组件 —— 亮色主题，最小化覆盖
-   让 NES.css 按原始设计工作（黑边 / 白底）
-   只调整字体和个别背景色
+   Pixel UI 组件 —— 深色主题
    ══════════════════════════════════════════════ */
 
-/* 容器：保持默认白底黑边，只改字体 */
-.nes-container {
+/*
+   ⚠️ 重要：pixel-ui 组件样式带作用域属性（如 .px-button[data-v-xxx]），
+   优先级高于普通类选择器。因此这里必须用 !important 强制覆盖，
+   否则卡片/按钮会回落到 pixel-ui 的白色背景（--px-color-white）。
+   这些自定义属性会被 pixelbox paint（Chrome）和下方的 CSS 回退（其他浏览器）
+   共同读取，保证两种环境下视觉一致。
+*/
+
+/* 统一字体 */
+.px-card,
+.px-button,
+.px-progress,
+.px-progress__text {
   font-family: 'Ark Pixel 16px Monospaced', 'Courier New', monospace;
-  font-size: 16px;
 }
 
-/* with-title 标题色 */
-.nes-container.with-title > .title {
-  background-color: var(--app-bg);
-  color: #c03000;
-  font-size: 16px;
-  font-family: 'Ark Pixel 16px Monospaced', monospace;
+/* 默认卡片 = 深蓝面板 */
+.px-card {
+  /* 无条件填充：即使 pixelbox paint 失效也有底色（paint 正常时同色覆盖，视觉一致） */
+  background-color: var(--px-bg-color) !important;
+  --px-bg-color: #1a2233 !important;
+  --px-border-color: #d4a017 !important;
+  --px-bg-shadow-color: #000 !important;
+  color: #ecdcc0 !important;
 }
 
-/* 按钮字体覆盖 */
-.nes-btn {
-  font-family: 'Ark Pixel 16px Monospaced', 'Courier New', monospace;
-  font-size: 16px;
-  cursor: pointer;
+/* 更深的深蓝卡片（赌台背景、模态层等） */
+.px-card.px-card--dark {
+  --px-bg-color: #141b2a !important;
+  --px-border-color: #d4a017 !important;
+  --px-bg-shadow-color: #000 !important;
+  color: #ecdcc0 !important;
 }
 
-/* 进度条 */
-.nes-progress { display: block; height: 18px; }
+/* 按钮 base = 深蓝面板 */
+.px-button {
+  /* 无条件填充（语义色由各类型变体覆盖 --px-bg-color 后生效） */
+  background-color: var(--px-bg-color) !important;
+  --px-bg-color: #1a2233 !important;
+  --px-border-color: #d4a017 !important;
+  --px-bg-shadow-color: #000 !important;
+  color: #ecdcc0 !important;
+}
+
+/* 按钮语义色（边框与底色同色，NES 风格） */
+.px-button--primary {
+  --px-bg-color: #d4a017 !important;
+  --px-border-color: #d4a017 !important;
+  color: #0f1626 !important;
+}
+.px-button--success {
+  --px-bg-color: #4caf50 !important;
+  --px-border-color: #4caf50 !important;
+  color: #0f1a10 !important;
+}
+.px-button--warning {
+  --px-bg-color: #d4a017 !important;
+  --px-border-color: #d4a017 !important;
+  color: #0f1626 !important;
+}
+.px-button--danger {
+  --px-bg-color: #e24c3b !important;
+  --px-border-color: #e24c3b !important;
+  color: #fff !important;
+}
+
+/* 禁用态：暗蓝灰 */
+.px-button:disabled {
+  --px-bg-color: #20293a !important;
+  --px-border-color: #3a4458 !important;
+  color: #8a8372 !important;
+}
+
+/* 进度条：暗色轨道 + 金边 */
+.px-progress {
+  width: 100%;
+  --px-progress-bar-container-color: #141b2a !important;
+  --px-bg-color: #141b2a !important;
+  --px-border-color: #d4a017 !important;
+  color: #ecdcc0 !important;
+}
+
+/* ───────────────────────────────────────────────
+   CSS Houdini Paint Worklet 回退边框
+   Firefox / Safari 等不支持 paint(pixelbox) 的浏览器，
+   用传统 border + box-shadow 呈现 NES 风格像素框
+   （背景色读取上面强制覆盖后的 --px-bg-color / --px-border-color）
+   ─────────────────────────────────────────────── */
+@supports not (background: paint(pixelbox)) {
+  .px-card,
+  .px-button {
+    background-color: var(--px-bg-color) !important;
+    background-image: none !important;
+    border: 4px solid var(--px-border-color, #d4a017);
+    border-radius: 0;
+    box-shadow:
+      inset -4px -4px 0 var(--px-bg-shadow-color, rgba(0,0,0,0.5)),
+      4px 4px 0 var(--px-bg-shadow-color, rgba(0,0,0,0.6));
+  }
+  /* NES 风格按下效果 */
+  .px-button:hover:not(:disabled) {
+    box-shadow:
+      inset -4px -4px 0 var(--px-bg-shadow-color, rgba(0,0,0,0.5)),
+      2px 2px 0 var(--px-bg-shadow-color, rgba(0,0,0,0.6));
+    transform: translate(2px, 2px);
+  }
+  .px-button:active:not(:disabled) {
+    box-shadow:
+      inset -4px -4px 0 var(--px-bg-shadow-color, rgba(0,0,0,0.5)),
+      0 0 0 var(--px-bg-shadow-color, rgba(0,0,0,0.6));
+    transform: translate(4px, 4px);
+  }
+  /* 进度条轨道 */
+  .px-progress-bar__outer {
+    background-color: #141b2a !important;
+    background-image: none !important;
+    border: 2px solid #d4a017;
+    border-radius: 0;
+  }
+  /* 进度条填充 */
+  .px-progress-bar__inner {
+    background-image: none !important;
+    background-color: var(--px-progress-bar-bg-color, #d4a017) !important;
+  }
+}
 
 /* ══════════════════════════════════════════════
    布局工具

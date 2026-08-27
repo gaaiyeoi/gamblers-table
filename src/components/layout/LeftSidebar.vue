@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { PxButton } from '@mmt817/pixel-ui'
+
 import type { CenterPanel } from '../../App.vue'
 
 defineProps<{ activePanel: CenterPanel }>()
@@ -32,38 +34,36 @@ const bottomItems: NavItem[] = [
   <nav class="left-sidebar">
     <template v-for="section in sections" :key="section.title">
       <div class="section-header">{{ section.title }}</div>
-      <button
+      <PxButton
         v-for="item in section.items"
         :key="`${item.id}-${item.label}`"
-        class="nes-btn nav-item"
-        :class="{ 'is-error': activePanel === item.id }"
-        type="button"
+        class="nav-item"
+        :type="activePanel === item.id ? 'danger' : 'base'"
         @click="emit('navigate', item.id)"
       >
         <span class="nav-item__icon">{{ item.icon }}</span>
         {{ item.label }}
-      </button>
+      </PxButton>
     </template>
 
     <div class="section-divider" />
     <div class="section-header">娱乐 / 外观</div>
-    <button
+    <PxButton
       v-for="item in bottomItems"
       :key="item.label"
-      class="nes-btn nav-item"
-      type="button"
+      class="nav-item"
       @click="emit('navigate', item.id)"
     >
       <span class="nav-item__icon">{{ item.icon }}</span>
       {{ item.label }}
-    </button>
+    </PxButton>
 
     <div class="section-divider" />
     <div class="section-header">系统</div>
-    <button class="nes-btn nav-item" type="button">
+    <PxButton class="nav-item">
       <span class="nav-item__icon">ℹ</span>
       设置
-    </button>
+    </PxButton>
   </nav>
 </template>
 

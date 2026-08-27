@@ -2,6 +2,7 @@
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 
+import { PxCard, PxProgress } from '@mmt817/pixel-ui'
 import { HELPER_TYPES, PRESTIGE_TIERS, dimensionProductionPerSecond, talentTotalMultiplier } from '../../core'
 import { formatCash } from '../../core/format'
 import { useGameStore } from '../../stores/gameStore'
@@ -49,12 +50,17 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
 <template>
   <aside class="rsb">
     <!-- ── 当局游戏 ── -->
-    <div class="nes-container is-rounded with-title rsb-block">
-      <p class="title">当局游戏</p>
+    <PxCard round class="rsb-block">
+      <template #header><p class="title">当局游戏</p></template>
       <div class="rsb-progress-text pixel-number">
         第 {{ round }} 关 · {{ progressPct.toFixed(0) }}%
       </div>
-      <progress class="nes-progress is-warning rsb-progress-bar" :value="progressPct" max="100" />
+      <PxProgress
+        class="rsb-progress-bar"
+        :percentage="progressPct"
+        status="warning"
+        :show-text="false"
+      />
       <div class="rsb-kv-list">
         <div class="rsb-kv pixel-number">
           <span>余额</span>
@@ -77,11 +83,11 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
           <span>累赚</span><span>{{ totalEarned }}</span>
         </div>
       </div>
-    </div>
+    </PxCard>
 
     <!-- ── 助手概览 ── -->
-    <div class="nes-container is-rounded with-title rsb-block">
-      <p class="title">助手概览</p>
+    <PxCard round class="rsb-block">
+      <template #header><p class="title">助手概览</p></template>
       <div v-if="helperSummary.length === 0" class="rsb-empty pixel-number">暂无助手</div>
       <div
         v-for="h in helperSummary"
@@ -92,11 +98,11 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
         <span class="rsb-helper-name">{{ HELPER_NAMES[h.id] ?? h.id }}</span>
         <span class="rsb-helper-cnt">×{{ h.count }}</span>
       </div>
-    </div>
+    </PxCard>
 
     <!-- ── 详细统计 ── -->
-    <div class="nes-container is-rounded with-title rsb-block">
-      <p class="title">详细统计</p>
+    <PxCard round class="rsb-block">
+      <template #header><p class="title">详细统计</p></template>
       <div class="rsb-kv-list">
         <div class="rsb-kv pixel-number">
           <span>每秒收入</span><span>{{ perSec }}</span>
@@ -112,11 +118,11 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
           <span>今日收入</span><span>{{ totalEarned }}</span>
         </div>
       </div>
-    </div>
+    </PxCard>
 
     <!-- ── 事件流 ── -->
-    <div class="nes-container is-rounded with-title rsb-block rsb-block--grow">
-      <p class="title">事件流</p>
+    <PxCard round class="rsb-block rsb-block--grow">
+      <template #header><p class="title">事件流</p></template>
       <div class="rsb-events">
         <div v-if="events.length === 0" class="rsb-empty pixel-number">暂无事件</div>
         <div
@@ -128,7 +134,7 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
           <span class="rsb-event-msg">{{ ev.msg }}</span>
         </div>
       </div>
-    </div>
+    </PxCard>
   </aside>
 </template>
 
@@ -146,8 +152,16 @@ const events = computed(() => { void uiVersion.value; return state.value.eventLo
   padding: 10px;
 }
 
-.rsb-block { flex-shrink: 0; }
+.rsb-block { flex-shrink: 0; display: block; }
 .rsb-block--grow { flex: 1; display: flex; flex-direction: column; }
+
+/* PxCard 头标题（对应 NES with-title） */
+.rsb-block .title {
+  margin: 0;
+  color: #c03000;
+  font-size: 16px;
+  font-weight: 700;
+}
 
 .rsb-progress-text {
   font-size: 16px;

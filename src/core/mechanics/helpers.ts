@@ -4,7 +4,7 @@ import { HELPER_TYPES, helperTypeOf } from '../data/helperTypes'
 import { Lazy, GameCache } from '../cache'
 import { EventHub, GAME_EVENT } from '../engine/eventBus'
 import type { GameState } from '../state/gameState'
-import { flipCoin } from './coins'
+import { flipCoin, type FlipResult } from './coins'
 
 /**
  * 助手机制：雇佣助手 → 助手每秒自动抛硬币 → 产出 + 骷髅代币。
@@ -54,6 +54,18 @@ export function totalFlipsPerSec(state: GameState): Decimal {
 }
 
 /**
+ * 批量结算 n 次抛硬币（可被可视化层或 tickHelpers 复用）。
+ * 返回每次翻转的结果，便于逐枚展示。
+ */
+export function flipCoins(state: GameState, count: number, rng: () => number = Math.random): FlipResult[] {
+  const results: FlipResult[] = []
+  for (let i = 0; i < count; i += 1) {
+    results.push(flipCoin(state, rng))
+  }
+  return results
+}
+
+/**
  * 助手 tick：按 dt 内应抛硬币次数逐次执行 flipCoin。
  * 频率较高时累计整数次执行，避免浮点误差累积。
  */
@@ -61,9 +73,7 @@ export function tickHelpers(state: GameState, dtMs: number, rng: () => number = 
   const flipsThisTick = totalFlipsPerSec(state).mul(dtMs / 1000)
   const wholeFlips = Decimal.floor(flipsThisTick).toNumber()
   const fractional = flipsThisTick.sub(wholeFlips).toNumber()
-  for (let i = 0; i < wholeFlips; i += 1) {
-    flipCoin(state, rng)
-  }
+  flipCoins(state, wholeFlips, rng)
   // 概率累积（分数部分用于下次 tick 补足；这里简化丢弃）
   void fractional
 }

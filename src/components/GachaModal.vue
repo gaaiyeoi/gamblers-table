@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Sparkles, X } from 'lucide-vue-next'
 
+import { PxButton, PxCard } from '@mmt817/pixel-ui'
 import { HAT_POOL, hatOf, type HatRarity } from '../core'
 import { useGameStore } from '../stores/gameStore'
 
@@ -42,22 +43,22 @@ function hatColor(hatId: string): string {
 <template>
   <Teleport to="body">
     <div class="gacha-overlay" role="dialog" aria-modal="true">
-      <div class="gacha nes-container is-dark">
+      <PxCard class="gacha px-card--dark">
         <div class="gacha__header">
           <h2 class="gacha__title pixel-number text-gold">{{ t('table.gacha') }}</h2>
-          <button class="nes-btn is-warning" type="button" aria-label="close" @click="emit('close')">
+          <PxButton type="warning" aria-label="close" @click="emit('close')">
             <X :size="14" />
-          </button>
+          </PxButton>
         </div>
 
-        <div class="gacha__machine nes-container is-rounded" aria-hidden="true">
+        <PxCard round class="gacha__machine" aria-hidden="true">
           <Sparkles class="gacha__sparkle" :size="40" />
           <span class="gacha__skull pixel-number">{{ skullTokens }}</span>
-        </div>
+        </PxCard>
 
-        <button class="nes-btn is-primary gacha__pull" type="button" @click="pull">
+        <PxButton type="primary" class="gacha__pull" @click="pull">
           {{ t('gacha.pull') }}
-        </button>
+        </PxButton>
 
         <div v-if="lastResult.length > 0" class="gacha__result">
           <span class="pixel-number">{{ t('gacha.result') }}：</span>
@@ -82,7 +83,7 @@ function hatColor(hatId: string): string {
             </span>
           </div>
         </div>
-      </div>
+      </PxCard>
     </div>
   </Teleport>
 </template>
@@ -99,12 +100,13 @@ function hatColor(hatId: string): string {
 }
 
 .gacha {
+  display: block;
   width: 420px;
   max-width: 90vw;
   max-height: 85vh;
   overflow-y: auto;
   padding: 16px;
-  border-color: var(--gold);
+  --px-border-color: var(--gold);
 }
 
 .gacha__header {
@@ -120,8 +122,8 @@ function hatColor(hatId: string): string {
   justify-content: center;
   gap: 12px;
   padding: 24px;
-  background: var(--table-bg-light);
-  border-color: var(--gold);
+  --px-bg-color: var(--table-bg-light);
+  --px-border-color: var(--gold);
   margin-bottom: 12px;
 }
 

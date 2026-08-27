@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { PxButton, PxCard } from '@mmt817/pixel-ui'
 import { canAffordHelper, costOfHelper, helperTypeOf } from '../../core'
 import { formatCash } from '../../core/format'
 import { useGameStore } from '../../stores/gameStore'
@@ -32,7 +33,7 @@ function hire(): void {
 </script>
 
 <template>
-  <div class="helper-card nes-container is-dark" :class="{ 'is-affordable': affordable }">
+  <PxCard class="helper-card px-card--dark" :class="{ 'is-affordable': affordable }">
     <div class="helper-card__icon" aria-hidden="true">{{ iconLetter }}</div>
     <div class="helper-card__body">
       <div class="helper-card__name pixel-number">{{ t(helper.nameKey) }}</div>
@@ -44,25 +45,32 @@ function hire(): void {
         {{ hat ? t(`hats.${hat.replace('hat_', '')}`) : t('helpers.noHat') }}
       </div>
     </div>
-    <button
-      class="nes-btn"
-      :class="{ 'is-success': affordable }"
-      type="button"
+    <PxButton
+      :type="affordable ? 'success' : 'base'"
       :disabled="!affordable"
       @click="hire"
     >
       {{ t('helpers.hire') }} · {{ owned }}
-    </button>
-  </div>
+    </PxButton>
+  </PxCard>
 </template>
 
 <style scoped>
 .helper-card {
+  --px-border-color: var(--gold);
+}
+
+/*
+ * PxCard 内部包装是 .px-card__content（flex-direction: column），
+ * 这里强制让 default slot 内的子元素横向排列。
+ */
+.helper-card :deep(.px-card__body) {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 12px;
-  padding: 10px;
-  border-color: var(--gold);
+  width: 100%;
+  padding: 0;
 }
 
 .helper-card__icon {
@@ -77,6 +85,7 @@ function hire(): void {
   justify-content: center;
   font-weight: 700;
   font-size: 20px;
+  flex-shrink: 0;
 }
 
 .helper-card__body {

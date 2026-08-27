@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { PxButton, PxCard } from '@mmt817/pixel-ui'
 import {
   canAffordDimension,
   COIN_TYPES,
@@ -45,7 +46,7 @@ function buy(): void {
 </script>
 
 <template>
-  <div class="item-card nes-container is-dark" :class="{ 'is-affordable': affordable }">
+  <PxCard class="item-card px-card--dark" :class="{ 'is-affordable': affordable }">
     <div class="item-card__icon" aria-hidden="true">
       {{ coin.icon.slice(0, 1).toUpperCase() }}
     </div>
@@ -59,16 +60,14 @@ function buy(): void {
         <div class="double-bar__fill" :style="{ width: `${doubleProgress * 100}%` }" />
       </div>
     </div>
-    <button
-      class="nes-btn"
-      :class="{ 'is-success': affordable }"
-      type="button"
+    <PxButton
+      :type="affordable ? 'success' : 'base'"
       :disabled="!affordable"
       @click="buy"
     >
       {{ t('table.click') }}
-    </button>
-  </div>
+    </PxButton>
+  </PxCard>
 </template>
 
 <style scoped>
@@ -77,12 +76,12 @@ function buy(): void {
   align-items: center;
   gap: 12px;
   padding: 10px;
-  border-color: var(--gold);
+  --px-border-color: var(--gold);
   cursor: default;
 }
 
 .item-card.is-affordable {
-  border-color: var(--gold);
+  --px-border-color: var(--gold);
 }
 
 .item-card__icon {
@@ -121,14 +120,15 @@ function buy(): void {
 
 .double-bar {
   margin-top: 4px;
-  height: 6px;
+  height: 8px;
   background: var(--table-bg-light);
-  border: 1px solid var(--gold-dark);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset -2px -2px 0 var(--gold-dark);
 }
 
 .double-bar__fill {
   height: 100%;
   background: var(--gold);
-  transition: width 0.2s ease;
+  box-shadow: inset -2px -2px 0 var(--gold-dark);
 }
 </style>

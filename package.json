@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "lsof -ti tcp:8000 | xargs -r kill -9; vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
@@ -16,9 +16,9 @@
   },
   "dependencies": {
     "@fontsource/press-start-2p": "^5.3.0",
+    "@mmt817/pixel-ui": "^1.6.0",
     "break_infinity.js": "^2.2.0",
     "lucide-vue-next": "^1.0.0",
-    "nes.css": "^2.2.1",
     "pinia": "^4.0.3",
     "vitest": "^4.1.11",
     "vue": "^3.5.12",

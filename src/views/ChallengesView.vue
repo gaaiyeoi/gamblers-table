@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { PxButton, PxCard } from '@mmt817/pixel-ui'
 import { CHALLENGES, isChallengeCompleted } from '../core'
 import { formatNumber } from '../core/format'
 import { useGameStore } from '../stores/gameStore'
@@ -45,7 +46,7 @@ function start(challengeId: string): void {
     <h1 class="pixel-number text-gold">{{ t('tabs.challenges') }}</h1>
 
     <div class="challenge-cards">
-      <div v-for="challenge in CHALLENGES" :key="challenge.id" class="challenge-card nes-container is-dark">
+      <PxCard v-for="challenge in CHALLENGES" :key="challenge.id" class="challenge-card px-card--dark">
         <div class="challenge-card__head">
           <span class="pixel-number text-gold">{{ t(challenge.nameKey) }}</span>
           <span
@@ -60,46 +61,42 @@ function start(challengeId: string): void {
           {{ t('challenges.target') }}：{{ formatNumber(challenge.target) }} ·
           {{ t('challenges.reward') }}：{{ challenge.rewardFlag }}
         </div>
-        <button
+        <PxButton
           v-if="statusOf(challenge.id) === 'active'"
-          class="nes-btn is-error"
-          type="button"
+          type="danger"
           @click="store.doStopChallenge()"
         >
           {{ t('challenges.stop') }}
-        </button>
-        <button
+        </PxButton>
+        <PxButton
           v-else
-          class="nes-btn is-primary"
-          type="button"
+          type="primary"
           :disabled="statusOf(challenge.id) === 'completed'"
           @click="start(challenge.id)"
         >
           {{ t('challenges.start') }}
-        </button>
-      </div>
+        </PxButton>
+      </PxCard>
     </div>
 
     <!-- 对抗资源进度（进行中挑战） -->
-    <div v-if="activeId !== null" class="opposition nes-container is-rounded">
+    <PxCard v-if="activeId !== null" round class="opposition">
       <span class="pixel-number">{{ t('challenges.opposition') }}：{{ formatNumber(opposition) }}</span>
       <div class="opposition__bar">
         <div class="opposition__fill" :style="{ width: `${oppositionProgress() * 100}%` }" />
       </div>
-    </div>
+    </PxCard>
 
     <!-- 自动化 DSL 脚本 -->
-    <section class="automator nes-container is-dark">
+    <PxCard class="automator px-card--dark">
       <div class="automator__head">
         <h2 class="pixel-number text-gold">{{ t('automator.script') }}</h2>
-        <button
-          class="nes-btn"
-          :class="{ 'is-success': state.automator.enabled }"
-          type="button"
+        <PxButton
+          :type="state.automator.enabled ? 'success' : 'base'"
           @click="store.setAutomator(!state.automator.enabled)"
         >
           {{ state.automator.enabled ? t('automator.disable') : t('automator.enable') }}
-        </button>
+        </PxButton>
       </div>
       <textarea
         v-model="state.automator.script"
@@ -107,7 +104,7 @@ function start(challengeId: string): void {
         :placeholder="t('automator.placeholder')"
         rows="4"
       />
-    </section>
+    </PxCard>
   </div>
 </template>
 
@@ -126,7 +123,8 @@ function start(challengeId: string): void {
 }
 
 .challenge-card {
-  border-color: var(--gold);
+  display: block;
+  --px-border-color: var(--gold);
   padding: 12px;
 }
 
@@ -158,26 +156,29 @@ function start(challengeId: string): void {
 }
 
 .opposition {
-  border-color: var(--gold);
+  display: block;
+  --px-border-color: var(--gold);
   padding: 12px;
   margin-bottom: 16px;
 }
 
 .opposition__bar {
-  height: 10px;
+  height: 12px;
   background: var(--table-bg-light);
-  border: 1px solid var(--gold-dark);
+  border: 3px solid var(--gold-dark);
+  box-shadow: inset -2px -2px 0 var(--gold-dark);
   margin-top: 8px;
 }
 
 .opposition__fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--functional-red), var(--gold));
-  transition: width 0.2s ease;
+  background: var(--functional-red);
+  box-shadow: inset -2px -2px 0 var(--gold-dark);
 }
 
 .automator {
-  border-color: var(--gold);
+  display: block;
+  --px-border-color: var(--gold);
   padding: 12px;
 }
 

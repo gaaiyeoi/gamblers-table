@@ -1,0 +1,19 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gamblers-table:dev
+    container_name: gamblers-table-app
+    ports:
+      # 固定端口 8000，避免本地多实例端口漂移
+      - "8000:8000"
+    volumes:
+      # 挂载源码实现 HMR 热更新
+      - .:/app
+      # 使用容器内的 node_modules，避免覆盖
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    restart: unless-stopped

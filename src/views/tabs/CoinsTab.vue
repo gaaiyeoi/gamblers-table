@@ -2,6 +2,7 @@
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 
+import { PxButton, PxCard } from '@mmt817/pixel-ui'
 import { canAffordDimension, COIN_TYPES, costOfDimension } from '../../core'
 import { formatCash } from '../../core/format'
 import { useGameStore } from '../../stores/gameStore'
@@ -60,10 +61,10 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
 
     <!-- 卡片列表 -->
     <div class="ct-list">
-      <div
+      <PxCard
         v-for="row in rows"
         :key="row.id"
-        class="nes-container is-dark cc-card"
+        class="cc-card px-card--dark"
         :class="{ 'cc-card--owned': row.bought > 0 }"
       >
         <!-- 已拥有徽章 -->
@@ -78,7 +79,7 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
             <span class="cc-coin-sym pixel-number">{{ row.symbol }}</span>
           </div>
           <div class="cc-info">
-            <div class="cc-name pixel-number">{{ row.name }}</div>
+            <div class="cc-name pixel-number" :style="{ color: row.color }">{{ row.name }}</div>
             <div class="cc-sub pixel-number">
               基础 {{ row.base }} · 强化 +25%/级 · Charge
             </div>
@@ -90,28 +91,25 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
 
         <!-- 底部按钮（全部在卡片内） -->
         <div class="cc-actions">
-          <button
-            class="nes-btn cc-btn"
-            :class="row.affordable ? 'is-success' : ''"
-            type="button"
+          <PxButton
+            class="cc-btn"
+            :type="row.affordable ? 'success' : 'base'"
             :disabled="!row.affordable"
             @click="buy(row.tier, 1)"
           >
-            购买<br>{{ row.cost1 }}
-          </button>
-          <button
-            class="nes-btn cc-btn"
-            :class="row.affordable ? '' : ''"
-            type="button"
-            @click="buy(row.tier, 10)"
-          >
-            ×10<br>{{ row.cost10 }}
-          </button>
-          <button class="nes-btn is-warning cc-btn" type="button">
-            强化<br>Lv0
-          </button>
+            <span class="cc-btn-label">购买</span>
+            <span class="cc-btn-cost">{{ row.cost1 }}</span>
+          </PxButton>
+          <PxButton class="cc-btn" @click="buy(row.tier, 10)">
+            <span class="cc-btn-label">×10</span>
+            <span class="cc-btn-cost">{{ row.cost10 }}</span>
+          </PxButton>
+          <PxButton type="warning" class="cc-btn">
+            <span class="cc-btn-label">强化</span>
+            <span class="cc-btn-cost">Lv0</span>
+          </PxButton>
         </div>
-      </div>
+      </PxCard>
     </div>
   </div>
 </template>
@@ -158,39 +156,41 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
 /* 硬币卡片 */
 .cc-card {
   position: relative;
+  display: block;
   padding: 12px !important;
-  background: #141d2e !important;
-  /* NES.css 像素阴影核心 */
+  /* 用 paint 变量代替 background 简写，避免覆盖 pixelbox 边框 */
+  --px-bg-color: #3a2410 !important;
+  /* Pixel UI 像素阴影核心 */
   box-shadow:
-    inset -4px -4px #0c1219,
-    inset  4px  4px #1e2d45 !important;
+    inset -4px -4px #1c1006,
+    inset  4px  4px #4a2f16 !important;
 }
 
 .cc-card:hover {
   box-shadow:
-    inset -4px -4px #0c1219,
-    inset  4px  4px #2a3e5c,
-    0 0 0 2px rgba(245, 166, 35, 0.2) !important;
+    inset -4px -4px #1c1006,
+    inset  4px  4px #543a1c,
+    0 0 0 2px rgba(212, 160, 23, 0.25) !important;
 }
 
 .cc-card--owned {
-  border-color: #f5a623 !important;
+  --px-border-color: #d4a017 !important;
   box-shadow:
     inset -4px -4px rgba(0,0,0,0.6),
     inset  4px  4px rgba(255,255,255,0.04),
-    0 0 8px rgba(245, 166, 35, 0.2) !important;
+    0 0 8px rgba(212, 160, 23, 0.25) !important;
 }
 
 /* 徽章 */
 .cc-badge {
   position: absolute;
   top: 8px; right: 8px;
-  background: #0c1219;
-  border: 2px solid #3e4f6a;
-  color: #6b7a99;
+  background: #e2daca;
+  border: 2px solid #a8a090;
+  color: #555;
   padding: 1px 7px;
   font-size: 16px;
-  box-shadow: inset -2px -2px #060c13, inset 2px 2px #1e2d45;
+  box-shadow: inset -2px -2px #c8c0a8, inset 2px 2px #fff;
 }
 
 /* 顶部布局 */
@@ -201,28 +201,52 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
   margin-bottom: 10px;
 }
 
-/* 像素硬币图标 */
+/* 像素硬币图标（8-bit 方块金币，与桌布硬币统一：无圆角、无渐变） */
 .cc-coin-icon {
+  position: relative;
   width: 40px; height: 40px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--cc) 60%, #fff), var(--cc) 55%, color-mix(in srgb, var(--cc) 50%, #000));
-  border: 3px solid color-mix(in srgb, var(--cc) 40%, #000);
+  background: var(--cc, #d4a017);
+  border: 3px solid color-mix(in srgb, var(--cc, #d4a017) 40%, #000);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   image-rendering: pixelated;
-  /* 立体阴影 */
+  /* 像素立体阴影：左上亮 / 右下暗 + 外阴影 */
   box-shadow:
-    0 4px 0 color-mix(in srgb, var(--cc) 30%, #000),
-    inset 0 2px 0 rgba(255,255,255,0.4),
-    inset 0 -2px 0 rgba(0,0,0,0.3);
+    inset -6px -6px 0 color-mix(in srgb, var(--cc, #d4a017) 35%, #000),
+    inset  6px  6px 0 color-mix(in srgb, var(--cc, #d4a017) 60%, #fff),
+    4px 4px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* 左上角像素高光（阶梯式，增强 8-bit 感） */
+.cc-coin-icon::before {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 8px; height: 4px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 4px 4px 0 rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+}
+
+/* 右下角像素阴影块 */
+.cc-coin-icon::after {
+  content: '';
+  position: absolute;
+  bottom: 3px; right: 3px;
+  width: 8px; height: 4px;
+  background: rgba(0, 0, 0, 0.28);
+  pointer-events: none;
 }
 
 .cc-coin-sym {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 900;
-  color: color-mix(in srgb, var(--cc) 20%, #000);
+  color: color-mix(in srgb, var(--cc, #d4a017) 15%, #000);
+  position: relative;
+  z-index: 2;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.45);
 }
 
 /* 信息 */
@@ -231,31 +255,53 @@ function buy(tier: number, count: number): void { store.buyDim(tier, count) }
 .cc-name {
   font-size: 16px;
   font-weight: 900;
-  color: #cdd7e8;
   margin-bottom: 3px;
+  /* 亮色：跟随硬币自身颜色，深色卡片上更醒目 */
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
 }
 
-.cc-sub { font-size: 16px; color: #6b7a99; }
+.cc-sub {
+  font-size: 16px;
+  /* 亮暖色，替代原来偏灰的 #555 */
+  color: #e8ddc0;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+}
 
 /* 虚线分隔 */
 .cc-divider {
   height: 2px;
   margin-bottom: 10px;
   background:
-    repeating-linear-gradient(90deg, #2a3e5c 0, #2a3e5c 4px, transparent 4px, transparent 8px);
+    repeating-linear-gradient(90deg, #b8b0a0 0, #b8b0a0 4px, transparent 4px, transparent 8px);
 }
 
 /* 按钮区 */
 .cc-actions { display: flex; gap: 6px; }
 
+/* 覆盖 px-button 固定高度/nowrap，让两行内容在按钮内自适应居中，不再溢出 */
 .cc-btn {
   flex: 1;
+  --px-button-size: auto !important;
+  height: auto !important;
+  flex-direction: column;
+  white-space: normal !important;
+  line-height: 1.2 !important;
   font-size: 16px !important;
-  padding: 4px 6px !important;
-  line-height: 1.5;
+  padding: 7px 8px !important;
   text-align: center;
   cursor: pointer;
   min-width: 0;
+}
+
+.cc-btn-label {
+  display: block;
+  font-weight: 700;
+}
+
+.cc-btn-cost {
+  display: block;
+  margin-top: 2px;
+  line-height: 1.2;
 }
 
 .cc-btn:disabled {

@@ -24,6 +24,7 @@ import {
   tickChallenge,
   tickDerivativeChain,
   tickHelpers,
+  flipCoins,
   evaluateScript,
   TimeManager,
   type GameState,
@@ -46,6 +47,12 @@ export const useGameStore = defineStore('game', () => {
   let elapsedSinceSave = 0
   /** UI 刷新计数器：Decimal 对象内部变化不触发 Vue 响应式，靠此计数器驱动重渲染。 */
   const uiVersion = ref(0)
+  /**
+   * 可视化自动生产接管标记：桌布可视化层（CoinScene）挂载时置 true，
+   * 此时在线自动生产改由可视化层按次结算（tickHelpers 暂停，避免双倍）；
+   * 可视化层卸载或离线结算时恢复 tickHelpers 兜底。
+   */
+  const visualAuto = ref(false)
 
   const loop = new GameLoop((deltaMs) => {
     tick(deltaMs)
@@ -57,8 +64,10 @@ export const useGameStore = defineStore('game', () => {
     const now = timeManager.touch()
     // 导数级联生产链（机制 1）
     tickDerivativeChain(state.value, deltaMs)
-    // 助手自动抛硬币（机制 4 自动化）
-    tickHelpers(state.value, deltaMs)
+    // 助手自动抛硬币（机制 4 自动化）：可视化层接管时由 CoinScene 逐次结算，否则按速率批量
+    if (!visualAuto.value) {
+      tickHelpers(state.value, deltaMs)
+    }
     tickChallenge(state.value, deltaMs)
     // 自动购买器（条件自动化雏形）
     tickAutobuyers(state.value, now)
@@ -79,6 +88,18 @@ export const useGameStore = defineStore('game', () => {
     uiVersion.value += 1
     void saveNow()
     return result
+  }
+
+  /** 批量结算 n 次抛硬币（可视化层高频兜底，避免高频时动画溢出）。 */
+  function flipCoinsNow(count: number): ReturnType<typeof flipCoins> {
+    const results = flipCoins(state.value, count)
+    uiVersion.value += 1
+    return results
+  }
+
+  /** 切换可视化自动生产接管（CoinScene 挂载/卸载时调用）。 */
+  function setVisualAuto(flag: boolean): void {
+    visualAuto.value = flag
   }
 
   /** 购买硬币维度。 */
@@ -245,6 +266,8 @@ export const useGameStore = defineStore('game', () => {
     manualSave,
     resetGame,
     doFlip,
+    flipCoinsNow,
+    setVisualAuto,
     buyDim,
     hireHelperAction,
     doGacha,
