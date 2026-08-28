@@ -2,10 +2,12 @@
 import { onBeforeUnmount, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 
+import { useSound } from '../../composables/useSound'
 import { useUiStore, type ToastType } from '../../stores/uiStore'
 
 const ui = useUiStore()
 const { toasts } = storeToRefs(ui)
+const { play } = useSound()
 
 /** 每种类型对应的图标标记与强调色。 */
 const META: Record<ToastType, { icon: string; cls: string }> = {
@@ -15,7 +17,7 @@ const META: Record<ToastType, { icon: string; cls: string }> = {
   error: { icon: '✕', cls: 'toast--error' },
 }
 
-const TOAST_DURATION_MS = 800
+const TOAST_DURATION_MS = 3000
 const timers = new Map<number, ReturnType<typeof setTimeout>>()
 
 /** 定时自动关闭单条提示。 */
@@ -28,6 +30,7 @@ function scheduleDismiss(id: number): void {
 }
 
 function onClose(id: number): void {
+  play('remove')
   const timer = timers.get(id)
   if (timer !== undefined) {
     clearTimeout(timer)
@@ -77,26 +80,27 @@ onBeforeUnmount(() => {
 <style scoped>
 .toast-container {
   position: fixed;
-  top: 64px;
-  right: 12px;
+  top: calc(64px * var(--ui-scale));
+  right: var(--sp-3);
   z-index: 100;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  width: 280px;
+  gap: var(--sp-2);
+  width: calc(280px * var(--ui-scale));
   pointer-events: none;
 }
 
 .toast {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: var(--app-bg);
-  border: 3px solid #212121;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-3);
+  background: var(--bg-3);
+  border: 2px solid var(--gold-500);
   box-shadow:
-    inset 0 0 0 2px #3a3a3a,
-    4px 4px 0 rgba(0, 0, 0, 0.4);
+    inset 0 0 0 2px var(--line-0),
+    0 0 14px var(--gold-glow),
+    4px 4px 0 rgba(0, 0, 0, 0.45);
   cursor: pointer;
   pointer-events: auto;
 }
@@ -105,34 +109,37 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: calc(24px * var(--ui-scale));
+  height: calc(24px * var(--ui-scale));
   flex-shrink: 0;
-  border: 2px solid #212121;
-  color: #212121;
+  border: 2px solid var(--line-0);
+  color: #fff;
   font-weight: 700;
+  font-size: var(--fs-sm);
   line-height: 1;
 }
 
 .toast__msg {
   flex: 1;
-  font-size: 14px;
+  font-size: var(--fs-base);
+  font-weight: 700;
   line-height: 1.5;
   color: var(--text-primary);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
 
 .toast__close {
   color: var(--text-dim);
   flex-shrink: 0;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   line-height: 1;
 }
 
 /* 类型配色 */
-.toast--success .toast__icon { background: #2f9e44; }
-.toast--info .toast__icon { background: #1971c2; }
-.toast--warn .toast__icon { background: #f08c00; }
-.toast--error .toast__icon { background: #e03131; }
+.toast--success .toast__icon { background: var(--pos); }
+.toast--info .toast__icon { background: var(--info); }
+.toast--warn .toast__icon { background: var(--warn); }
+.toast--error .toast__icon { background: var(--neg); }
 
 /* 进出场动画 */
 .toast-enter-active,

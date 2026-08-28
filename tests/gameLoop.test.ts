@@ -32,11 +32,26 @@ function createTestLoop(stepMs = 50, onTick = vi.fn()) {
 }
 
 describe('GameLoop（固定步长累积器）', () => {
-  it('50ms 步长下推进 200ms 触发 4 次 tick', () => {
+  it('单帧最多推进 maxStepsPerFrame（默认 2）步，余数结转不丢失', () => {
     const { loop, advanceFrame, onTick } = createTestLoop()
     loop.start()
-    advanceFrame(200)
+    advanceFrame(200) // 200ms = 4 步，单帧只推进 2 步，剩余 100ms 结转
+    expect(onTick).toHaveBeenCalledTimes(2)
+    advanceFrame(10) // 下一帧带上结转余数补跑 2 步
     expect(onTick).toHaveBeenCalledTimes(4)
+  })
+
+  it('掉帧不丢失真实时间：大 delta 分多帧补完，而不是丢弃', () => {
+    const { loop, advanceFrame, onTick } = createTestLoop()
+    loop.start()
+    // 单帧注入 400ms（=8 步），maxFrameDelta 内；单帧上限 2 步，其余结转
+    advanceFrame(400)
+    expect(onTick).toHaveBeenCalledTimes(2)
+    // 后续用小步长帧把结转余数全部消化（8 步总共），而不是丢弃
+    for (let i = 0; i < 20; i += 1) {
+      advanceFrame(1)
+    }
+    expect(onTick).toHaveBeenCalledTimes(8)
   })
 
   it('余数累积：100ms 触发 2 次 tick，剩余 0ms', () => {
@@ -46,12 +61,21 @@ describe('GameLoop（固定步长累积器）', () => {
     expect(onTick).toHaveBeenCalledTimes(2)
   })
 
-  it('超大 delta 被 maxFrameDelta 截断（防后台恢复爆炸）', () => {
+  it('多帧小 delta 累积：正常运行频率不受单帧上限影响', () => {
+    const { loop, advanceFrame, onTick } = createTestLoop()
+    loop.start()
+    for (let i = 0; i < 10; i += 1) {
+      advanceFrame(50) // 每帧恰好 1 步，均低于 maxStepsPerFrame
+    }
+    expect(onTick).toHaveBeenCalledTimes(10)
+  })
+
+  it('超大 delta：maxFrameDelta 截断到 1000ms 后再按 maxStepsPerFrame 丢弃', () => {
     const { loop, advanceFrame, onTick } = createTestLoop()
     loop.start()
     advanceFrame(5000)
-    // maxFrameDelta 默认 1000ms → 最多 20 次 tick
-    expect(onTick).toHaveBeenCalledTimes(20)
+    // maxFrameDelta 截断到 1000ms=20 步，但单帧最多推进 2 步，其余结转后续帧
+    expect(onTick).toHaveBeenCalledTimes(2)
   })
 
   it('stop 后不再触发 tick', () => {

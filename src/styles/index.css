@@ -1,6 +1,9 @@
-/* Pixel UI（@mmt817/pixel-ui）+ Ark Pixel 16px 像素字体 */
+/* ════════════════════════════════════════════════════════════════
+   GAMBLERS TABLE · 全局设计系统
+   暖琥珀棕 · 威士忌酒馆（深棕褐底 + 琥珀橙金）
+   ════════════════════════════════════════════════════════════════ */
 
-/* Ark Pixel 16px —— 统一中文像素字体 */
+/* ── Ark Pixel 16px —— 统一中文像素字体 ── */
 @font-face {
   font-family: 'Ark Pixel 16px Monospaced';
   src: url('/fonts/ark-pixel-16px-zh-cn.woff2') format('woff2');
@@ -9,237 +12,283 @@
   font-display: swap;
 }
 
-/* ══════════════════════════════════════════════
-   CSS 变量 —— 深蓝暗金主题
-   深海军蓝背景 + 暗金强调，复古赌场典雅风
-   ══════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   设计令牌（Design Tokens）
+   ════════════════════════════════════════════════════════════════ */
 :root {
-  /* 深蓝背景层级 */
-  --app-bg:            #0f1626;
-  --sidebar-bg:        #0c1321;
-  --panel-bg:          #1a2233;
-  --panel-bg-deep:     #141b2a;
+  /*
+   * ── 界面缩放系数 ──
+   * 所有尺寸令牌（字号 / 间距 / 组件高度）统一乘以它，一处改动即可整体放大或缩小界面。
+   * 由 uiStore 读取存档后写到 <html> 上（见 applyUiScale），可选档位：1 / 1.25 / 1.5 / 1.75。
+   * 各令牌的基准值一律取 4 的倍数，保证在 1.25 / 1.5 / 1.75 倍下仍是整像素
+   * —— 点阵字体与像素边框只有在整像素下才不会发虚。
+   */
+  --ui-scale: 1.25;
 
-  --accent:            #b8912b;   /* 暗金 */
-  --accent-hover:      #c9a23a;
-  --accent-dim:        rgba(184,145,43,.15);
-  --accent-text:       #0f1626;
+  /* ── 背景层级（深棕黑 → 浮起） ── */
+  --bg-0: #0a0605;
+  --bg-1: #140d09;
+  --bg-2: #1d130d;
+  --bg-3: #291a10;
+  --bg-4: #342116;
+  --bg-5: #402a1c;
+  --bg-6: #4d3320;
+  --bg-invert: #f4e4cf;
 
-  --felt:              #1f5130;
-  --felt-light:        #2a6438;
-  --felt-dark:         #143322;
-  --table-frame:       #0c1321;
+  /* ── 边框（暖棕） ── */
+  --line-0: #0c0705;
+  --line-1: #3a2717;
+  --line-2: #5a3d24;
+  --line-accent: rgba(240, 162, 60, 0.35);
 
-  /* 米白文字（深蓝背景上保持可读） */
-  --text-primary:      #ecdcc0;
-  --text-secondary:    #b8b0a0;
-  --text-dim:          #8a8372;
-  --text-gold:         #c4a34a;
+  /* ── 强调 · 琥珀橙金（沿用旧 gold 变量名，组件自动生效） ── */
+  --gold-200: #ffe6b8;
+  --gold-300: #fcd08a;
+  --gold-400: #f0b45e;
+  --gold-500: #e09637;
+  --gold-600: #c17822;
+  --gold-700: #8a5316;
+  --gold-glow: rgba(240, 162, 60, 0.35);
+  --gold-glow-soft: rgba(240, 162, 60, 0.16);
+  --gold-dim: rgba(240, 162, 60, 0.13);
 
-  --positive:          #4caf50;
-  --negative:          #e24c3b;
-  --skull-color:       #c084fc;
-  --gold:              #b8912b;
-  --gold-dark:         #8c6b1f;
+  /* 霓虹变量名兼容 → 映射为琥珀（供旧组件引用） */
+  --neon-cyan: #e09637;
+  --neon-cyan-bright: #ffd891;
+  --neon-cyan-dim: #b8721e;
+  --neon-pink: #d8822f;
+  --neon-pink-bright: #f0b45e;
+  --neon-pink-dark: #8a5316;
+  --neon-violet: #c98a4a;
 
-  /* 兼容旧变量名 */
-  --table-bg:          #1a2233;
-  --table-bg-light:    #141b2a;
-  --wood:              #1a2233;
-  --carpet-red:        #1f5130;
-  --text-main:         #ecdcc0;
-  --functional-green:  #4caf50;
-  --functional-red:    #e24c3b;
+  /* ── 文字（暖米白） ── */
+  --txt-hi: #f7ecda;
+  --txt-main: #ecdcc4;
+  --txt-sub: #c4ab8b;
+  --txt-dim: #9c8466;
+  --txt-faint: #6b573f;
+  --txt-gold: #f0b45e;
+  --txt-gold-bright: #ffd891;
+  --txt-on-gold: #1d1208;
 
-  /* NES 风格像素边框用色（暗金勾边） */
-  --light-border:      #b8912b;
+  /* ── 功能色（暖化） ── */
+  --pos: #7bb661;
+  --pos-dark: #558a4a;
+  --neg: #d4553a;
+  --neg-dark: #a63d27;
+  --skull: #d98fd0;
+  --info: #d9a441;
+  --warn: #e08a2a;
 
-  font-family: 'Ark Pixel 16px Monospaced', 'Courier New', monospace;
-  font-size: 16px;
+  /* ── 赌台毛毡（自然绿，保留 —— 绿毯配棕桌是赌场经典） ── */
+  --felt: #1f5130;
+  --felt-light: #2a6a3e;
+  --felt-dark: #143322;
+  --felt-frame: #3a2008;
+  --felt-frame-dark: #2a1804;
 
-  /* ── Pixel UI 主题：字体（普通自定义属性，可继承） ── */
+  /* ── 兼容旧变量名 ── */
+  --app-bg: #140d09;
+  --sidebar-bg: #1d130d;
+  --panel-bg: #291a10;
+  --panel-bg-deep: #1d130d;
+  --accent: #e09637;
+  --accent-hover: #f0b45e;
+  --accent-dim: rgba(240, 162, 60, 0.15);
+  --accent-text: #1d1208;
+  --text-primary: #ecdcc4;
+  --text-secondary: #c4ab8b;
+  --text-dim: #9c8466;
+  --text-gold: #f0b45e;
+  --positive: #7bb661;
+  --negative: #d4553a;
+  --skull-color: #d98fd0;
+  --gold: #e09637;
+  --gold-dark: #8a5316;
+  --table-bg: #291a10;
+  --table-bg-light: #1d130d;
+  --wood: #291a10;
+  --carpet-red: #1f5130;
+  --text-main: #ecdcc4;
+  --functional-green: #7bb661;
+  --functional-red: #d4553a;
+  --light-border: #e09637;
+  --border-main: #3a2717;
+
+  /* ── 字体层级（随 --ui-scale 缩放） ── */
+  --font-pixel: 'Ark Pixel 16px Monospaced', 'Courier New', monospace;
+  --fs-xs: calc(12px * var(--ui-scale));
+  --fs-sm: calc(16px * var(--ui-scale));
+  --fs-base: calc(16px * var(--ui-scale));
+  --fs-md: calc(20px * var(--ui-scale));
+  --fs-lg: calc(24px * var(--ui-scale));
+  --fs-xl: calc(32px * var(--ui-scale));
+  --fs-hero: calc(40px * var(--ui-scale));
+
+  /* ── 间距刻度（随 --ui-scale 缩放，保持 4px 网格） ── */
+  --sp-0: 0;
+  --sp-1: calc(4px * var(--ui-scale));
+  --sp-2: calc(8px * var(--ui-scale));
+  --sp-3: calc(12px * var(--ui-scale));
+  --sp-4: calc(16px * var(--ui-scale));
+  --sp-5: calc(20px * var(--ui-scale));
+  --sp-6: calc(24px * var(--ui-scale));
+  --sp-8: calc(32px * var(--ui-scale));
+  --sp-10: calc(40px * var(--ui-scale));
+
+  /* ── 圆角 ── */
+  --radius-0: 0;
+  --radius-1: calc(2px * var(--ui-scale));
+
+  /* ── 边框与阴影 ── */
+  --bd-w: 2px;
+  --bd-w-strong: 3px;
+  --bd: 2px solid #3a2717;
+  --bd-gold: 2px solid #e09637;
+  --shadow-nes: inset -3px -3px 0 rgba(0, 0, 0, 0.5), 3px 3px 0 rgba(0, 0, 0, 0.5);
+  --shadow-nes-gold: inset -3px -3px 0 #8a5316, 3px 3px 0 rgba(0, 0, 0, 0.5);
+  --shadow-nes-inset: inset 2px 2px 0 rgba(255, 255, 255, 0.04), inset -2px -2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.75), 0 0 0 1px var(--line-accent), 0 0 24px rgba(240, 162, 60, 0.18);
+  --shadow-gold-glow: 0 0 12px rgba(240, 162, 60, 0.4);
+  --shadow-amber-glow: 0 0 10px rgba(240, 162, 60, 0.5);
+  --shadow-neon-cyan: 0 0 10px rgba(240, 162, 60, 0.5);
+  --shadow-neon-pink: 0 0 10px rgba(216, 130, 47, 0.5);
+
+  font-family: var(--font-pixel);
+  font-size: var(--fs-base);
+
+  /* ── Pixel UI 字体（随 --ui-scale 缩放，16px 正是点阵字体的原生设计尺寸） ── */
   --px-font-family: 'Ark Pixel 16px Monospaced', 'Zpix', 'PS2P', monospace;
-  --px-font-size-standard: 16px;
-  --px-font-size-small: 16px;
+  --px-font-size-standard: calc(16px * var(--ui-scale));
+  --px-font-size-small: calc(16px * var(--ui-scale));
 }
 
 /*
-   Pixel UI 的颜色变量通过 CSS Houdini @property 注册，且 inherits:false，
+   Pixel UI 的颜色变量通过 CSS Houdini @property 注册且 inherits:false，
    仅放在 :root 无法传递到组件元素，故对所有元素生效以覆盖默认配色。
 */
 :root, * {
-  --px-color-base: #ecdcc0;
-  --px-color-primary: #b8912b;
-  --px-color-success: #4caf50;
-  --px-color-warning: #b8912b;
-  --px-color-danger: #e24c3b;
-  --px-color-sakura: #c084fc;
+  --px-color-base: #ecdcc4;
+  --px-color-primary: #e09637;
+  --px-color-success: #7bb661;
+  --px-color-warning: #f0b45e;
+  --px-color-danger: #d4553a;
+  --px-color-sakura: #d98fd0;
 }
-
-/* ══════════════════════════════════════════════
-   全局重置
-   ⚠️ 绝对不加 border-radius:0 或 border:none 在
-      NES 元素上 —— 会破坏 border-image 切角和
-      box-shadow 像素阴影
-   ══════════════════════════════════════════════ */
 *, *::before, *::after {
   box-sizing: border-box;
-  transition: none !important;
 }
 
 html, body, #app { margin: 0; padding: 0; height: 100%; }
 
 body {
-  background:      var(--app-bg);
-  color:           var(--text-primary);
-  font-family:     'Ark Pixel 16px Monospaced', 'Courier New', monospace;
-  font-size:       16px;
-  line-height:     1.8;
+  background: var(--app-bg);
+  color: var(--text-primary);
+  font-family: var(--font-pixel);
+  font-size: var(--fs-base);
+  line-height: 1.7;
   image-rendering: pixelated;
   -webkit-font-smoothing: none;
-  font-smooth:     never;
-  overflow:        hidden;
+  font-smooth: never;
+  overflow: hidden;
 }
 
+/* ════════════════════════════════════════════════════════════════
+   应用环境背景：威士忌酒馆氛围
+   顶部吊灯暖光 + 角落暖橙 + 深棕夜空 + 暖金星点
+   ════════════════════════════════════════════════════════════════ */
+#app {
+  background:
+    /* 顶部吊灯暖光 */
+    radial-gradient(ellipse 75% 45% at 50% 0%, rgba(240, 162, 60, 0.14), transparent 70%),
+    /* 右上暖橙辉光 */
+    radial-gradient(ellipse 50% 45% at 96% 30%, rgba(224, 150, 55, 0.10), transparent 65%),
+    /* 左下深褐 */
+    radial-gradient(ellipse 55% 50% at 6% 100%, rgba(58, 39, 23, 0.5), transparent 65%),
+    /* 暖金星点 */
+    radial-gradient(1px 1px at 12% 18%, rgba(255, 216, 145, 0.5), transparent),
+    radial-gradient(1px 1px at 28% 62%, rgba(252, 208, 138, 0.5), transparent),
+    radial-gradient(1px 1px at 55% 22%, rgba(255, 230, 184, 0.45), transparent),
+    radial-gradient(1px 1px at 78% 78%, rgba(255, 216, 145, 0.45), transparent),
+    radial-gradient(1px 1px at 88% 35%, rgba(255, 230, 184, 0.4), transparent),
+    radial-gradient(1px 1px at 42% 85%, rgba(252, 208, 138, 0.4), transparent),
+    var(--app-bg);
+  background-attachment: fixed;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   基础文本工具类
+   ════════════════════════════════════════════════════════════════ */
 .pixel-number { font-variant-numeric: tabular-nums; letter-spacing: .5px; }
 .text-gold    { color: var(--text-gold); }
 .text-pos     { color: var(--positive); }
 .text-neg     { color: var(--negative); }
+.text-dim     { color: var(--text-dim); }
+.text-hi      { color: var(--txt-hi); }
 
-/* ══════════════════════════════════════════════
-   Pixel UI 组件 —— 深色主题
-   ══════════════════════════════════════════════ */
-
-/*
-   ⚠️ 重要：pixel-ui 组件样式带作用域属性（如 .px-button[data-v-xxx]），
-   优先级高于普通类选择器。因此这里必须用 !important 强制覆盖，
-   否则卡片/按钮会回落到 pixel-ui 的白色背景（--px-color-white）。
-   这些自定义属性会被 pixelbox paint（Chrome）和下方的 CSS 回退（其他浏览器）
-   共同读取，保证两种环境下视觉一致。
-*/
-
-/* 统一字体 */
-.px-card,
-.px-button,
-.px-progress,
-.px-progress__text {
-  font-family: 'Ark Pixel 16px Monospaced', 'Courier New', monospace;
+/* 英雄数字：现金/产速的大号显示（琥珀渐变） */
+.hero-number {
+  font-size: var(--fs-hero);
+  font-weight: 700;
+  letter-spacing: 1px;
+  line-height: 1.1;
+  background: linear-gradient(180deg, var(--txt-gold-bright) 0%, var(--gold-400) 60%, var(--gold-600) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 24px rgba(240, 162, 60, 0.4);
+  font-variant-numeric: tabular-nums;
 }
 
-/* 默认卡片 = 深蓝面板 */
-.px-card {
-  /* 无条件填充：即使 pixelbox paint 失效也有底色（paint 正常时同色覆盖，视觉一致） */
-  background-color: var(--px-bg-color) !important;
-  --px-bg-color: #1a2233 !important;
-  --px-border-color: #b8912b !important;
-  --px-bg-shadow-color: #000 !important;
-  color: #ecdcc0 !important;
+/* 中号琥珀数字 */
+.gold-number {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--txt-gold);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 8px rgba(240, 162, 60, 0.35);
 }
 
-/* 更深的深蓝卡片（赌台背景、模态层等） */
-.px-card.px-card--dark {
-  --px-bg-color: #141b2a !important;
-  --px-border-color: #b8912b !important;
-  --px-bg-shadow-color: #000 !important;
-  color: #ecdcc0 !important;
+/* 区段标题：琥珀 + 像素下划线 */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--txt-faint);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0 0 var(--sp-2);
+}
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--line-accent), transparent);
 }
 
-/* 按钮 base = 深蓝面板 */
-.px-button {
-  /* 无条件填充（语义色由各类型变体覆盖 --px-bg-color 后生效） */
-  background-color: var(--px-bg-color) !important;
-  --px-bg-color: #1a2233 !important;
-  --px-border-color: #b8912b !important;
-  --px-bg-shadow-color: #000 !important;
-  color: #ecdcc0 !important;
+/* 通用像素面板 */
+.px-panel {
+  background: var(--panel-bg);
+  border: 2px solid var(--gold-500);
+  color: var(--text-main);
+  box-shadow: var(--shadow-nes);
+  position: relative;
+}
+.px-panel--deep {
+  background: var(--panel-bg-deep);
+  border-color: var(--gold-500);
+}
+.px-panel--inset {
+  background: var(--bg-2);
+  border: 1px solid var(--line-1);
+  box-shadow: var(--shadow-nes-inset);
 }
 
-/* 按钮语义色（边框与底色同色，NES 风格） */
-.px-button--primary {
-  --px-bg-color: #b8912b !important;
-  --px-border-color: #b8912b !important;
-  color: #0f1626 !important;
-}
-.px-button--success {
-  --px-bg-color: #4caf50 !important;
-  --px-border-color: #4caf50 !important;
-  color: #0f1a10 !important;
-}
-.px-button--warning {
-  --px-bg-color: #b8912b !important;
-  --px-border-color: #b8912b !important;
-  color: #0f1626 !important;
-}
-.px-button--danger {
-  --px-bg-color: #e24c3b !important;
-  --px-border-color: #e24c3b !important;
-  color: #fff !important;
-}
-
-/* 禁用态：暗蓝灰 */
-.px-button:disabled {
-  --px-bg-color: #20293a !important;
-  --px-border-color: #3a4458 !important;
-  color: #8a8372 !important;
-}
-
-/* 进度条：暗色轨道 + 金边 */
-.px-progress {
-  width: 100%;
-  --px-progress-bar-container-color: #141b2a !important;
-  --px-bg-color: #141b2a !important;
-  --px-border-color: #b8912b !important;
-  color: #ecdcc0 !important;
-}
-
-/* ───────────────────────────────────────────────
-   CSS Houdini Paint Worklet 回退边框
-   Firefox / Safari 等不支持 paint(pixelbox) 的浏览器，
-   用传统 border + box-shadow 呈现 NES 风格像素框
-   （背景色读取上面强制覆盖后的 --px-bg-color / --px-border-color）
-   ─────────────────────────────────────────────── */
-@supports not (background: paint(pixelbox)) {
-  .px-card,
-  .px-button {
-    background-color: var(--px-bg-color) !important;
-    background-image: none !important;
-    border: 4px solid var(--px-border-color, #b8912b);
-    border-radius: 0;
-    box-shadow:
-      inset -4px -4px 0 var(--px-bg-shadow-color, rgba(0,0,0,0.5)),
-      4px 4px 0 var(--px-bg-shadow-color, rgba(0,0,0,0.6));
-  }
-  /* NES 风格按下效果 */
-  .px-button:hover:not(:disabled) {
-    box-shadow:
-      inset -4px -4px 0 var(--px-bg-shadow-color, rgba(0,0,0,0.5)),
-      2px 2px 0 var(--px-bg-shadow-color, rgba(0,0,0,0.6));
-    transform: translate(2px, 2px);
-  }
-  .px-button:active:not(:disabled) {
-    box-shadow:
-      inset -4px -4px 0 var(--px-bg-shadow-color, rgba(0,0,0,0.5)),
-      0 0 0 var(--px-bg-shadow-color, rgba(0,0,0,0.6));
-    transform: translate(4px, 4px);
-  }
-  /* 进度条轨道 */
-  .px-progress-bar__outer {
-    background-color: #141b2a !important;
-    background-image: none !important;
-    border: 2px solid #b8912b;
-    border-radius: 0;
-  }
-  /* 进度条填充 */
-  .px-progress-bar__inner {
-    background-image: none !important;
-    background-color: var(--px-progress-bar-bg-color, #b8912b) !important;
-  }
-}
-
-/* ══════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════════
    布局工具
-   ══════════════════════════════════════════════ */
-*::-webkit-scrollbar              { width: 8px; height: 8px; }
-*::-webkit-scrollbar-track        { background: var(--app-bg); }
-*::-webkit-scrollbar-thumb        { background: #999; border: 2px solid var(--app-bg); }
-*::-webkit-scrollbar-thumb:hover  { background: #b8912b; }
+   ════════════════════════════════════════════════════════════════ */
+*::-webkit-scrollbar              { width: calc(8px * var(--ui-scale)); height: calc(8px * var(--ui-scale)); }
+*::-webkit-scrollbar-track        { background: rgba(0, 0, 0, 0.4); }
+*::-webkit-scrollbar-thumb        { background: #5a3d24; border: 2px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover  { background: var(--gold-500); background-clip: padding-box; border: 2px solid transparent; }

@@ -169,21 +169,55 @@ function noiseShot(when = 0, gain = 0.03, dur = 0.03, filterFreq = 6000): void {
   src.stop(t0 + dur + 0.02)
 }
 
-export function useSound(): {
+/**
+ * 按钮音效名：一个语义一个音色。
+ * 按钮只需声明 `sound="buy"`，由 useSound().play() 统一分发，避免组件里堆 if/switch。
+ */
+export type ButtonSound =
+  | 'click'
+  | 'tab'
+  | 'open'
+  | 'close'
+  | 'navUp'
+  | 'navDown'
+  | 'select'
+  | 'place'
+  | 'remove'
+  | 'craft'
+  | 'buy'
+  | 'upgrade'
+  | 'enhance'
+  | 'prestige'
+  | 'toggleOn'
+  | 'toggleOff'
+  | 'danger'
+  | 'tick'
+  | 'error'
+
+/** useSound() 暴露的 API。 */
+export interface SoundApi {
+  /** 静音状态（模块级共享，所有实例联动）。 */
   muted: typeof muted
+  /** 音量 0..1。 */
   volume: typeof volume
+  /** 切换静音，返回切换后的状态。 */
   toggleMuted: () => boolean
+  /** 直接设置静音状态。 */
   setMuted: (m: boolean) => void
+  /** 设置音量，自动夹到 0..1。 */
   setVolume: (v: number) => void
+  /** 按语义名播放音效（按钮统一入口）。 */
+  play: (name: ButtonSound) => void
   playClick: () => void
   playFlip: () => void
   playBuy: () => void
   playError: () => void
   playPrestige: () => void
-  playGacha: () => void
   playUpgrade: () => void
   playToggle: (on: boolean) => void
-} {
+}
+
+export function useSound(): SoundApi {
   function toggleMuted(): boolean {
     muted.value = !muted.value
     persistMuted()
@@ -236,15 +270,6 @@ export function useSound(): {
     tone({ freq: 1047, dur: 0.3, type: 'square', gain: 0.055, when: 0.3, slideTo: 1568 })
   }
 
-  /** 抽卡：欢快上行琶音。 */
-  function playGacha(): void {
-    tone({ freq: 784, dur: 0.09, type: 'square', gain: 0.045 })
-    tone({ freq: 988, dur: 0.09, type: 'square', gain: 0.045, when: 0.09 })
-    tone({ freq: 1175, dur: 0.09, type: 'square', gain: 0.045, when: 0.18 })
-    tone({ freq: 1568, dur: 0.18, type: 'square', gain: 0.05, when: 0.27 })
-    noiseShot(0, 0.02, 0.02, 6000)
-  }
-
   /** 强化/升级：上扬"嗖~叮"。 */
   function playUpgrade(): void {
     noiseShot(0, 0.02, 0.02, 6000)
@@ -262,7 +287,116 @@ export function useSound(): {
     noiseShot(0, 0.015, 0.02, 4000)
   }
 
+  /** 面板 Tab 切换：两声短促上行。 */
+  function playTab(): void {
+    tone({ freq: 520, dur: 0.05, type: 'square', gain: 0.03 })
+    tone({ freq: 784, dur: 0.06, type: 'square', gain: 0.032, when: 0.045 })
+  }
+
+  /** 打开面板/弹窗：柔和上行两音。 */
+  function playOpen(): void {
+    tone({ freq: 523, dur: 0.09, type: 'triangle', gain: 0.045 })
+    tone({ freq: 784, dur: 0.12, type: 'triangle', gain: 0.04, when: 0.06 })
+  }
+
+  /** 关闭面板/弹窗：柔和下行两音。 */
+  function playClose(): void {
+    tone({ freq: 784, dur: 0.09, type: 'triangle', gain: 0.045 })
+    tone({ freq: 523, dur: 0.12, type: 'triangle', gain: 0.04, when: 0.06 })
+  }
+
+  /** 向上/回退：上滑音。 */
+  function playNavUp(): void {
+    tone({ freq: 440, dur: 0.12, type: 'square', gain: 0.045, slideTo: 880 })
+    noiseShot(0, 0.015, 0.02, 4000)
+  }
+
+  /** 向下/深入：下滑音。 */
+  function playNavDown(): void {
+    tone({ freq: 880, dur: 0.12, type: 'square', gain: 0.045, slideTo: 440 })
+    noiseShot(0, 0.015, 0.02, 4000)
+  }
+
+  /** 选中（锭型 / 信标类型）：清脆单音。 */
+  function playSelect(): void {
+    tone({ freq: 1046, dur: 0.07, type: 'sine', gain: 0.045 })
+    tone({ freq: 1568, dur: 0.05, type: 'sine', gain: 0.02, when: 0.03 })
+  }
+
+  /** 放入槽位 / 投料：闷"咚" + 咔。 */
+  function playPlace(): void {
+    tone({ freq: 196, dur: 0.1, type: 'triangle', gain: 0.06, filterFreq: 900 })
+    noiseShot(0, 0.03, 0.04, 1600)
+  }
+
+  /** 移除槽位：短促下行。 */
+  function playRemove(): void {
+    tone({ freq: 520, dur: 0.09, type: 'sawtooth', gain: 0.04, slideTo: 300, filterFreq: 2200 })
+    noiseShot(0, 0.02, 0.02, 3000)
+  }
+
+  /** 锻造：两记锤击 + 金属余音（结果音由业务层再补一声成功/失败）。 */
+  function playCraft(): void {
+    noiseShot(0, 0.05, 0.05, 2200)
+    tone({ freq: 1200, dur: 0.1, type: 'triangle', gain: 0.045, when: 0.01 })
+    noiseShot(0.09, 0.035, 0.04, 1800)
+    tone({ freq: 900, dur: 0.12, type: 'triangle', gain: 0.035, when: 0.1 })
+  }
+
+  /** 锭增强：闪亮分解和弦 + 高频火花。 */
+  function playEnhance(): void {
+    tone({ freq: 784, dur: 0.1, type: 'triangle', gain: 0.045 })
+    tone({ freq: 1046, dur: 0.1, type: 'triangle', gain: 0.04, when: 0.06 })
+    tone({ freq: 1318, dur: 0.12, type: 'triangle', gain: 0.04, when: 0.12 })
+    tone({ freq: 2093, dur: 0.14, type: 'sine', gain: 0.025, when: 0.18 })
+  }
+
+  /** 危险操作（重置存档）：低沉双击警告。 */
+  function playDanger(): void {
+    tone({ freq: 180, dur: 0.12, type: 'sawtooth', gain: 0.06, filterFreq: 800 })
+    tone({ freq: 180, dur: 0.14, type: 'sawtooth', gain: 0.06, when: 0.16, filterFreq: 800 })
+  }
+
+  /** 滑杆 / 微调：极轻的一声"嘀"。 */
+  function playTick(): void {
+    tone({ freq: 1200, dur: 0.025, type: 'square', gain: 0.022 })
+  }
+
+  /** 音效分发表：语义名 → 播放函数。 */
+  const table: Record<ButtonSound, () => void> = {
+    click: playClick,
+    tab: playTab,
+    open: playOpen,
+    close: playClose,
+    navUp: playNavUp,
+    navDown: playNavDown,
+    select: playSelect,
+    place: playPlace,
+    remove: playRemove,
+    craft: playCraft,
+    buy: playBuy,
+    upgrade: playUpgrade,
+    enhance: playEnhance,
+    prestige: playPrestige,
+    toggleOn: () => playToggle(true),
+    toggleOff: () => playToggle(false),
+    danger: playDanger,
+    tick: playTick,
+    error: playError,
+  }
+
+  /** 按语义名播放音效。 */
+  function play(name: ButtonSound): void {
+    try {
+      table[name]()
+    } catch (err) {
+      // 音效失败（如 AudioContext 受限/异常）不应影响业务逻辑
+      console.warn('[useSound] play failed:', name, err)
+    }
+  }
+
   return {
+    play,
     muted,
     volume,
     toggleMuted,
@@ -273,7 +407,6 @@ export function useSound(): {
     playBuy,
     playError,
     playPrestige,
-    playGacha,
     playUpgrade,
     playToggle,
   }

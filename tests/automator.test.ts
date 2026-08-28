@@ -17,13 +17,14 @@ describe('parseAutomatorScript（受限 DSL）', () => {
     expect(rules[0]?.action).toEqual({ type: 'prestige', tier: 1 })
   })
 
-  it('解析 start challenge 规则', () => {
-    const rules = parseAutomatorScript('if reputation >= 5 then start challenge darkMatter')
-    expect(rules[0]?.action).toEqual({ type: 'startChallenge', challengeId: 'darkMatter' })
+  it('解析 reputation 规则', () => {
+    const rules = parseAutomatorScript('if reputation >= 5 then prestige 2')
+    expect(rules[0]?.action).toEqual({ type: 'prestige', tier: 2 })
   })
 
   it('拒绝任意 JavaScript', () => {
     expect(() => parseAutomatorScript('window.alert(1)')).toThrow()
+    expect(() => parseAutomatorScript('start challenge darkMatter')).toThrow()
   })
 })
 

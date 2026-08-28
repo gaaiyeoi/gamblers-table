@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from 'vue'
-import { PxButton } from '@mmt817/pixel-ui'
 
-type ButtonType = 'success' | 'primary' | 'warning' | 'danger' | 'base' | 'sakura'
+import { useSound, type ButtonSound } from '../../composables/useSound'
+import GtButton from './GtButton.vue'
+
+type ButtonType = 'success' | 'primary' | 'warning' | 'danger' | 'base' | 'ghost'
 
 const props = withDefaults(
   defineProps<{
-    /** 按钮主题色，透传给 PxButton。 */
+    /** 按钮主题色，透传给 GtButton。 */
     type?: ButtonType
-    /** 自定义颜色，透传给 PxButton。 */
-    color?: string
     /** 是否禁用（外部状态，如钱不够）。 */
     disabled?: boolean
     /**
@@ -17,11 +17,15 @@ const props = withDefaults(
      * 连点不会被拦截，只会累积待生产数，按周期逐个结算（类似自动购买）。
      */
     intervalMs?: number
+    /** 每次点击的音效语义名。 */
+    sound?: ButtonSound
   }>(),
-  { intervalMs: 500 },
+  { intervalMs: 500, sound: 'place' },
 )
 
 const emit = defineEmits<{ click: [] }>()
+
+const { play } = useSound()
 
 /** 连点累积的待生产数。 */
 const pending = ref(0)
@@ -35,6 +39,7 @@ let start = 0
 
 function onClick(): void {
   if (props.disabled) return
+  play(props.sound)
   pending.value += 1
   if (!running.value) {
     running.value = true
@@ -72,25 +77,20 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <PxButton
-    :use-throttle="false"
+  <GtButton
     class="cb-inner"
     :type="type"
-    :color="color"
     :disabled="disabled"
     @click="onClick"
   >
     <slot />
     <div v-if="running" class="cb-fill" :style="{ width: `${progress * 100}%` }" />
     <span v-if="pending > 1" class="cb-pending pixel-number">×{{ pending }}</span>
-  </PxButton>
+  </GtButton>
 </template>
 
 <style scoped>
-.cb-inner {
-  position: relative;
-  overflow: hidden;
-}
+/* GtButton 已自带 position:relative; overflow:hidden，cb-fill 可直接绝对定位 */
 
 /* 生产周期进度：从空到满，满格结算一次生产 */
 .cb-fill {
@@ -106,10 +106,10 @@ onBeforeUnmount(() => {
 /* 待生产数徽标：连点累积提示 */
 .cb-pending {
   position: absolute;
-  top: 2px;
-  right: 4px;
+  top: calc(2px * var(--ui-scale));
+  right: calc(4px * var(--ui-scale));
   z-index: 2;
-  font-size: 16px;
+  font-size: var(--fs-base);
   line-height: 1;
   color: #3ddc84;
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6);

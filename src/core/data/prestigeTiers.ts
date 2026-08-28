@@ -1,62 +1,68 @@
 import Decimal from 'break_infinity.js'
 
+import type { GameState } from '../state/gameState'
+import { miningPrestigePreview } from '../mechanics/mining'
+
 /**
  * 转生层级配置（4 层嵌套 prestige）。
- * MVP 仅 Tier1 启用 UI/逻辑，Tier2-4 配置占位供后续机制扩展。
+ * Tier1 为采矿转生：奖励绿水晶（crystalGreen），基于历史最高深度。
+ * Tier2-4 配置占位供后续机制扩展。
  */
 export interface PrestigeTierDef {
   tier: number
   nameKey: string
-  /** 通货 id（如 'reputation' / 'infinityPoints' / 'eternityPoints' / 'realityMachines'）。 */
+  /** 通货 id（tier1 为 'crystalGreen'）。 */
   currencyId: string
-  /** 触发阈值（cash >= threshold）。 */
+  /** 触发阈值（tier1 为深度，其余为 cash）。 */
   threshold: Decimal
-  /** 通货获得公式：(currentCash) -> gainedCurrency。 */
-  formula: (cash: Decimal) => Decimal
+  /** 通货获得公式：(state) -> gainedCurrency。 */
+  formula: (state: GameState) => Decimal
 }
+
+/** 采矿转生所需的最小绿水晶产量（低于此值不值得转生）。 */
+export const PRESTIGE_MIN_CRYSTAL = 1
 
 export const PRESTIGE_TIERS: PrestigeTierDef[] = [
   {
     tier: 1,
     nameKey: 'prestige.tier1',
-    currencyId: 'reputation',
-    threshold: new Decimal(1e6),
-    formula: (cash) => {
-      if (cash.lt(1e6)) return new Decimal(0)
-      // gain = floor((log10(cash) - 6)^2)，cash=1e6→0，1e7→1，1e9→9，1e16→100
-      const logCash = cash.log10()
-      const diff = Math.max(0, logCash - 6)
-      return new Decimal(diff).pow(2).floor()
+    currencyId: 'crystalGreen',
+    threshold: new Decimal(PRESTIGE_MIN_CRYSTAL),
+    formula: (state) => {
+      // 深度居民 → 绿水晶：1.15^(steps/2) * steps * 7 * (dweller/cap)
+      const crystal = miningPrestigePreview(state)
+      if (crystal < PRESTIGE_MIN_CRYSTAL) return new Decimal(0)
+      return new Decimal(Math.floor(crystal))
     },
   },
   {
     tier: 2,
     nameKey: 'prestige.tier2',
     currencyId: 'infinityPoints',
-    threshold: new Decimal(1e15),
-    formula: (cash) => {
-      if (cash.lt(1e15)) return new Decimal(0)
-      return Decimal.floor(new Decimal(cash.log10()).sub(13))
+    threshold: new Decimal(1e16),
+    formula: (state) => {
+      if (state.cash.lt(1e16)) return new Decimal(0)
+      return Decimal.floor(new Decimal(state.cash.log10()).sub(14))
     },
   },
   {
     tier: 3,
     nameKey: 'prestige.tier3',
     currencyId: 'eternityPoints',
-    threshold: new Decimal(1e30),
-    formula: (cash) => {
-      if (cash.lt(1e30)) return new Decimal(0)
-      return Decimal.floor(new Decimal(cash.log10()).sub(28))
+    threshold: new Decimal(1e32),
+    formula: (state) => {
+      if (state.cash.lt(1e32)) return new Decimal(0)
+      return Decimal.floor(new Decimal(state.cash.log10()).sub(30))
     },
   },
   {
     tier: 4,
     nameKey: 'prestige.tier4',
     currencyId: 'realityMachines',
-    threshold: new Decimal(1e50),
-    formula: (cash) => {
-      if (cash.lt(1e50)) return new Decimal(0)
-      return Decimal.floor(new Decimal(cash.log10()).sub(48))
+    threshold: new Decimal(1e64),
+    formula: (state) => {
+      if (state.cash.lt(1e64)) return new Decimal(0)
+      return Decimal.floor(new Decimal(state.cash.log10()).sub(62))
     },
   },
 ]

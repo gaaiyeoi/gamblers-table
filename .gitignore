@@ -25,3 +25,9 @@ dist-ssr
 
 # 部署脚本（含服务器地址/端口，不入库）
 deploy.sh
+
+# 项目私有数据（CodeBuddy 运行时数据，不入库）
+.codebuddy/
+
+# SSR 调试临时脚本
+tmp-ssr-check.mjs
