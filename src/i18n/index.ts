@@ -45,6 +45,9 @@ const zh = {
     openedSettings: '已打开设置',
     switchedPanel: '已切换到{panel}',
     panelTable: '矿场',
+    saveExported: '存档已导出到本地文件',
+    saveImported: '存档导入成功',
+    saveImportFailed: '存档导入失败：文件无效',
   },
   block: {
     locked: '未解锁：「{name}」',
@@ -220,6 +223,9 @@ const en: typeof zh = {
     openedSettings: 'Settings opened',
     switchedPanel: 'Switched to {panel}',
     panelTable: 'Mine',
+    saveExported: 'Save exported to a local file',
+    saveImported: 'Save imported successfully',
+    saveImportFailed: 'Import failed: invalid file',
   },
   block: {
     locked: 'Locked: {name}',

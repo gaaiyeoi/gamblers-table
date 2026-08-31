@@ -266,7 +266,7 @@ export function createMiningState(): MiningState {
     keepUpgrades: {},
     uncappedUpgrades: {},
     unlocks: {},
-    autoProgress: 0,
+    autoProgress: 90,
     autoBuyUpgrades: false,
     autoBuyAccumulator: 0,
     tickAccumulator: 0,

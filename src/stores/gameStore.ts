@@ -64,6 +64,9 @@ import type { StorageAdapter } from '../storage/storageAdapter'
 import { useSound } from '../composables/useSound'
 import { i18n } from '../i18n'
 import { formatCash } from '../core/format'
+import { deepMergeAll } from '../core/state/deepMerge'
+import { migrate } from '../core/state/schema'
+import { deserializeState, serializeState } from '../core/state/serializer'
 import { useUiStore, type ToastType } from './uiStore'
 
 const { playError, playUpgrade, playToggle } = useSound()
@@ -654,6 +657,39 @@ export const useGameStore = defineStore('game', () => {
     loop.start()
   }
 
+  /**
+   * 导出存档：把当前进度序列化为 JSON 字符串（Decimal 经 serializer 转字符串）。
+   * 供下载为本地文件或复制到剪贴板，格式与 LocalStorageAdapter 一致。
+   */
+  function exportSave(): string {
+    return JSON.stringify(serializeState(state.value))
+  }
+
+  /**
+   * 导入存档：解析 JSON → 反序列化（Decimal 还原）→ 深度合并补齐缺省 →
+   * 版本迁移 → 覆盖当前进度并重建乘区后保存。
+   * 成功返回 true；格式非法等失败返回 false，原进度保持不变。
+   */
+  function importSave(json: string): boolean {
+    try {
+      const parsed: unknown = JSON.parse(json)
+      if (parsed === null || typeof parsed !== 'object') {
+        return false
+      }
+      const data = deserializeState<GameState>(parsed)
+      const merged = deepMergeAll(createDefaultGameState(), data)
+      state.value = migrate(merged)
+      initMining(state.value)
+      ensureDurability(state.value)
+      uiVersion.value += 1
+      void saveNow()
+      return true
+    } catch (error) {
+      console.error('[gameStore] 存档导入失败', error)
+      return false
+    }
+  }
+
   /** 重置游戏（清档 + 重新初始化）。 */
   async function resetGame(): Promise<void> {
     loop.stop()
@@ -675,6 +711,8 @@ export const useGameStore = defineStore('game', () => {
     init,
     saveNow,
     manualSave,
+    exportSave,
+    importSave,
     resetGame,
     doPrestige,
     previewPrestige,

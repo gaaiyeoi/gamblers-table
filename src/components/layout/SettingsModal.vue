@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { X, Volume2, VolumeX } from 'lucide-vue-next'
+import { Download, Upload, X, Volume2, VolumeX } from 'lucide-vue-next'
 
 import { useSound } from '../../composables/useSound'
 import { i18n } from '../../i18n'
@@ -11,7 +11,7 @@ import GtCard from '../ui/GtCard.vue'
 
 const ui = useUiStore()
 const store = useGameStore()
-const { muted, volume, toggleMuted, setVolume, play } = useSound()
+const { muted, volume, toggleMuted, setVolume, play, playError } = useSound()
 
 /** 图标尺寸随界面缩放（lucide 图标是 SVG，取整即可保持锐利）。 */
 const iconSize = computed(() => Math.round(16 * ui.uiScale))
@@ -68,6 +68,48 @@ function onReset(): void {
   // 重置会清空事件流，因此提示必须在重置完成后再写入
   void store.resetGame().then(() => store.notify(i18n.global.t('ui.resetDone'), 'warn'))
   ui.closeSettings()
+}
+
+/** 存档文件上传输入框（隐藏，点击"导入"时触发选择文件）。 */
+const importFileInput = ref<HTMLInputElement | null>(null)
+
+/** 导出存档：序列化当前进度为 JSON 文件并下载。 */
+function onExport(): void {
+  const blob = new Blob([store.exportSave()], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `gamblers-save-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+  play('select')
+  store.notify(i18n.global.t('ui.saveExported'), 'success')
+}
+
+/** 打开文件选择框以导入存档。 */
+function onImportClick(): void {
+  play('select')
+  importFileInput.value?.click()
+}
+
+/** 读取选中的存档文件并导入；失败时给出提示，原进度保持不变。 */
+function onImportFile(e: Event): void {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    const ok = store.importSave(String(reader.result ?? ''))
+    if (ok) {
+      play('select')
+      store.notify(i18n.global.t('ui.saveImported'), 'success')
+    } else {
+      playError()
+      store.notify(i18n.global.t('ui.saveImportFailed'), 'error')
+    }
+  }
+  reader.readAsText(file)
 }
 </script>
 
@@ -135,11 +177,26 @@ function onReset(): void {
         <div class="settings__section settings__section--danger">
           <div class="settings__row">
             <span class="settings__label">存档</span>
-            <GtButton type="danger" @click="onReset">
-              {{ confirmReset ? '确认重置？' : '重置游戏' }}
-            </GtButton>
+            <div class="settings__save-actions">
+              <GtButton type="base" class="settings__save-btn" @click="onExport">
+                <Download :size="iconSize" /> 导出
+              </GtButton>
+              <GtButton type="base" class="settings__save-btn" @click="onImportClick">
+                <Upload :size="iconSize" /> 导入
+              </GtButton>
+              <GtButton type="danger" class="settings__save-btn" @click="onReset">
+                {{ confirmReset ? '确认重置？' : '重置游戏' }}
+              </GtButton>
+            </div>
           </div>
-          <p class="settings__hint">重置会清空当前进度，无法恢复。</p>
+          <p class="settings__hint">导出可把进度保存为本地文件；导入会覆盖当前进度。</p>
+          <input
+            ref="importFileInput"
+            class="settings__file"
+            type="file"
+            accept=".json,application/json"
+            @change="onImportFile"
+          />
         </div>
       </GtCard>
     </div>
@@ -228,6 +285,23 @@ function onReset(): void {
 
 .settings__scale {
   min-width: calc(56px * var(--ui-scale));
+}
+
+.settings__save-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+}
+
+.settings__save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings__file {
+  display: none;
 }
 
 .settings__hint {
